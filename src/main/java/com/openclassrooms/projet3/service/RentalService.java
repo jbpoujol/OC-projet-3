@@ -37,7 +37,6 @@ public class RentalService {
         rental.setPrice(rentalDetails.getPrice());
         rental.setPicture(rentalDetails.getPicture());
         rental.setDescription(rentalDetails.getDescription());
-        rental.setOwnerId(rentalDetails.getOwnerId());
         rental.setUpdatedAt( LocalDate.now() );
         final Rental updatedRental = rentalRepository.save(rental);
         return updatedRental;
