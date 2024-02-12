@@ -1,5 +1,10 @@
 package com.openclassrooms.projet3.controller;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,11 +14,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.model.DBUser;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.RentalService;
 import com.openclassrooms.projet3.service.RentalService.ResourceNotFoundException;
+
+import jakarta.transaction.Transactional;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,8 +39,12 @@ public class RentalController {
     }
 
     @GetMapping
-    public Iterable<Rental> getRentals() {
-        return rentalService.findAllRentals();
+    public List<RentalDTO> getRentals() {
+        Iterable<Rental> rentalsIterable = rentalService.findAllRentals();
+        List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
+                .map(rental -> rentalService.convertToDTO(rental)) // Utiliser convertToDTO de RentalService
+                .collect(Collectors.toList());
+        return rentalsList;
     }
 
     @GetMapping("/{id}")

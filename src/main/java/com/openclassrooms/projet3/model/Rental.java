@@ -39,7 +39,7 @@ public class Rental {
     @Column(name = "description", length = 2000)
     private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", nullable = false)
     private DBUser owner;
 

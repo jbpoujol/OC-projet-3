@@ -6,12 +6,12 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.repository.RentalRepository;
 
 @Service
 public class RentalService {
-
 
     @Autowired
     public RentalRepository rentalRepository;
@@ -30,18 +30,17 @@ public class RentalService {
 
     public Rental updateRental(Long id, Rental rentalDetails) {
         Rental rental = rentalRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Rental not found for this id :: " + id));
-    
+                .orElseThrow(() -> new ResourceNotFoundException("Rental not found for this id :: " + id));
+
         rental.setName(rentalDetails.getName());
         rental.setSurface(rentalDetails.getSurface());
         rental.setPrice(rentalDetails.getPrice());
         rental.setPicture(rentalDetails.getPicture());
         rental.setDescription(rentalDetails.getDescription());
-        rental.setUpdatedAt( LocalDate.now() );
+        rental.setUpdatedAt(LocalDate.now());
         final Rental updatedRental = rentalRepository.save(rental);
         return updatedRental;
     }
-    
 
     public void deleteRental(Long id) {
         rentalRepository.deleteById(id);
@@ -52,6 +51,19 @@ public class RentalService {
             super(message);
         }
     }
-    
+
+    public RentalDTO convertToDTO(Rental rental) {
+        RentalDTO dto = new RentalDTO();
+        dto.setId(rental.getId());
+        dto.setName(rental.getName());
+        dto.setSurface(rental.getSurface());
+        dto.setPrice(rental.getPrice());
+        dto.setPicture(rental.getPicture());
+        dto.setDescription(rental.getDescription());
+        dto.setCreatedAt(rental.getCreatedAt().toString());
+        dto.setUpdatedAt(rental.getUpdatedAt().toString());
+        dto.setOwnerId(rental.getOwner().getId());
+        return dto;
+    }
 
 }
