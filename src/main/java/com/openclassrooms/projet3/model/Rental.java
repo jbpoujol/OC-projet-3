@@ -19,8 +19,8 @@ import lombok.Data;
 @Entity
 @Table(name = "rentals")
 public class Rental {
-    
-      @Id
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -36,12 +36,12 @@ public class Rental {
     @Column(name = "picture")
     private String picture;
 
-    @Column(name = "description", length = 2000) 
+    @Column(name = "description", length = 2000)
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    private DBUser owner;
 
     @Column(name = "created_at")
     private LocalDate createdAt;

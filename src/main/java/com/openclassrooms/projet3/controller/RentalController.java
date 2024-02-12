@@ -9,18 +9,25 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.openclassrooms.projet3.model.DBUser;
 import com.openclassrooms.projet3.model.Rental;
+import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.RentalService;
 import com.openclassrooms.projet3.service.RentalService.ResourceNotFoundException;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/rentals")
 public class RentalController {
-    
-    private final RentalService rentalService;
 
-    public RentalController(RentalService rentalService) {
+    private final RentalService rentalService;
+    private final DBUserService dbUserService;
+
+    public RentalController(RentalService rentalService, DBUserService dbUserService) {
         this.rentalService = rentalService;
+        this.dbUserService = dbUserService;
     }
 
     @GetMapping
@@ -36,11 +43,16 @@ public class RentalController {
     }
 
     @PostMapping
-    public Rental createRental(@RequestBody Rental rental) {
-        System.out.println(rental.getName());
-        return rentalService.saveRental(rental);
+    public ResponseEntity<Rental> createRental(@RequestBody Rental rental) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName(); // Obtenez le nom d'utilisateur de l'utilisateur authentifié
+        DBUser owner = dbUserService.find(username); // Récupérez l'utilisateur de la base de données
+
+        rental.setOwner(owner); // Affectez cet utilisateur comme propriétaire du rental
+        Rental savedRental = rentalService.saveRental(rental);
+        return ResponseEntity.ok(savedRental); // Retournez le rental sauvegardé
     }
-    
+
     @PutMapping("/{id}")
     public ResponseEntity<Rental> updateRental(@PathVariable Long id, @RequestBody Rental rentalDetails) {
         try {
