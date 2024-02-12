@@ -1,10 +1,12 @@
 package com.openclassrooms.projet3.controller;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,8 +22,6 @@ import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.RentalService;
 import com.openclassrooms.projet3.service.RentalService.ResourceNotFoundException;
-
-import jakarta.transaction.Transactional;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,7 +42,7 @@ public class RentalController {
     public List<RentalDTO> getRentals() {
         Iterable<Rental> rentalsIterable = rentalService.findAllRentals();
         List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
-                .map(rental -> rentalService.convertToDTO(rental)) // Utiliser convertToDTO de RentalService
+                .map(rental -> rentalService.convertToDTO(rental))
                 .collect(Collectors.toList());
         return rentalsList;
     }
@@ -55,23 +55,46 @@ public class RentalController {
     }
 
     @PostMapping
-    public ResponseEntity<Rental> createRental(@RequestBody Rental rental) {
+    public ResponseEntity<?> createRental(@RequestBody Rental rental) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName(); // Obtenez le nom d'utilisateur de l'utilisateur authentifié
-        DBUser owner = dbUserService.find(username); // Récupérez l'utilisateur de la base de données
+        String username = authentication.getName();
+        DBUser owner = dbUserService.find(username);
 
-        rental.setOwner(owner); // Affectez cet utilisateur comme propriétaire du rental
-        Rental savedRental = rentalService.saveRental(rental);
-        return ResponseEntity.ok(savedRental); // Retournez le rental sauvegardé
+        rental.setOwner(owner);
+        rentalService.saveRental(rental);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Rental created!");
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Rental> updateRental(@PathVariable Long id, @RequestBody Rental rentalDetails) {
+    public ResponseEntity<?> updateRental(@PathVariable Long id, @RequestBody Rental rentalDetails) {
         try {
-            Rental updatedRental = rentalService.updateRental(id, rentalDetails);
-            return ResponseEntity.ok(updatedRental);
+            Rental existingRental = rentalService.findRentalById(id)
+                    .orElseThrow(
+                            () -> rentalService.new ResourceNotFoundException("Rental not found for this id :: " + id));
+
+            if (rentalDetails.getName() != null)
+                existingRental.setName(rentalDetails.getName());
+            if (rentalDetails.getSurface() != 0)
+                existingRental.setSurface(rentalDetails.getSurface());
+            if (rentalDetails.getPrice() != 0.0)
+                existingRental.setPrice(rentalDetails.getPrice());
+            if (rentalDetails.getPicture() != null)
+                existingRental.setPicture(rentalDetails.getPicture());
+            if (rentalDetails.getDescription() != null)
+                existingRental.setDescription(rentalDetails.getDescription());
+
+            rentalService.saveRental(existingRental);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Rental updated!");
+            return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Rental not found for this id :: " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
 
