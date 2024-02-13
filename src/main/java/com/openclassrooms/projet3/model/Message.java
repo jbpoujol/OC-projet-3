@@ -16,11 +16,11 @@ public class Message {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rental_id", referencedColumnName = "id")
+    @JoinColumn(name = "rental_id", referencedColumnName = "id",  nullable = false)
     private Rental rental;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id",  nullable = false)
     private DBUser user;
 
     @Column(name = "message", length = 2000)
