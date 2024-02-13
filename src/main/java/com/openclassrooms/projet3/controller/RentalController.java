@@ -38,15 +38,45 @@ public class RentalController {
         this.dbUserService = dbUserService;
     }
 
+    /**
+     * Handles the GET request to retrieve all rentals.
+     *
+     * This method fetches all rental entities using the rental service, converts each entity
+     * to its Data Transfer Object (DTO) representation, and then collects them into a list.
+     * The list of RentalDTO objects is then encapsulated within a Map under the key 'rentals',
+     * allowing the response to be easily extended in the future with additional data if necessary.
+     *
+     * The use of StreamSupport along with the spliterator of the Iterable allows for
+     * efficient streaming and transformation of the rental entities to DTOs.
+     *
+     * @return A Map containing the list of RentalDTOs under the key 'rentals',
+     *         which is then serialized into a JSON object response.
+     */
     @GetMapping
-    public List<RentalDTO> getRentals() {
+    public Map<String, Object> getRentals() {
         Iterable<Rental> rentalsIterable = rentalService.findAllRentals();
         List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
-                .map(rental -> rentalService.convertToDTO(rental))
+                .map(rentalService::convertToDTO)
                 .collect(Collectors.toList());
-        return rentalsList;
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("rentals", rentalsList);
+        return response;
     }
 
+    /**
+     * Handles the GET request to retrieve a single rental by its ID.
+     * This method searches for a rental using the provided ID by calling the rental service.
+     * If a rental with the specified ID is found, it is returned wrapped in a ResponseEntity with an HTTP status of OK (200).
+     * If the rental cannot be found, a ResponseEntity with an HTTP status of NOT FOUND (404) is returned instead.
+     * The use of Java 8's Optional.map() method allows for concise handling of the service's return value.
+     * If a value is present (the rental is found), it is transformed into a ResponseEntity with the rental data.
+     * If no value is present (the rental is not found), the orElseGet() method is used to supply a ResponseEntity
+     * indicating that the resource was not found.
+     *
+     * @param id The ID of the rental to retrieve.
+     * @return A ResponseEntity containing the rental if found, or a NOT FOUND status if not.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Rental> getRentalById(@PathVariable Long id) {
         return rentalService.findRentalById(id)

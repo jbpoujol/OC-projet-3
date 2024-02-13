@@ -10,7 +10,7 @@ public class RentalDTO {
     private double price;
     private String picture;
     private String description;
-    private Long ownerId;
-    private String createdAt;
-    private String updatedAt;
+    private Long owner_id;
+    private String created_at;
+    private String updated_at;
 }

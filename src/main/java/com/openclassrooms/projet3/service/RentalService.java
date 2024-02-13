@@ -60,9 +60,9 @@ public class RentalService {
         dto.setPrice(rental.getPrice());
         dto.setPicture(rental.getPicture());
         dto.setDescription(rental.getDescription());
-        dto.setCreatedAt(rental.getCreatedAt().toString());
-        dto.setUpdatedAt(rental.getUpdatedAt().toString());
-        dto.setOwnerId(rental.getOwner().getId());
+        dto.setCreated_at(rental.getCreatedAt().toString());
+        dto.setUpdated_at(rental.getUpdatedAt().toString());
+        dto.setOwner_id(rental.getOwner().getId());
         return dto;
     }
 
