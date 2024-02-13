@@ -35,4 +35,8 @@ public class DBUserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 
+    public DBUser findUserById(Long id) {
+        return dbUserRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
 }

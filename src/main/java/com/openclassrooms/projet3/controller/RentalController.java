@@ -68,21 +68,27 @@ public class RentalController {
     }
 
     /**
-     * Handles the GET request to retrieve a single rental by its ID.
-     * This method searches for a rental using the provided ID by calling the rental service.
-     * If a rental with the specified ID is found, it is returned wrapped in a ResponseEntity with an HTTP status of OK (200).
-     * If the rental cannot be found, a ResponseEntity with an HTTP status of NOT FOUND (404) is returned instead.
-     * The use of Java 8's Optional.map() method allows for concise handling of the service's return value.
-     * If a value is present (the rental is found), it is transformed into a ResponseEntity with the rental data.
-     * If no value is present (the rental is not found), the orElseGet() method is used to supply a ResponseEntity
-     * indicating that the resource was not found.
+     * Retrieves a rental by its ID and returns it as a DTO.
+     * This method handles a GET request to fetch a single rental identified by its unique ID. It utilizes
+     * the rentalService to find the rental entity. If the rental is found, it is converted to a RentalDTO
+     * using the rentalService's convertToDTO method. This conversion abstracts away the entity-to-DTO
+     * transformation logic into the service layer, promoting a clean separation of concerns.
+     * The method follows these steps:
+     * 1. Calls the rentalService's findRentalById method with the provided ID to attempt to find the rental.
+     * 2. If a rental is found, it uses a method reference (rentalService::convertToDTO) to convert the rental entity
+     *    to a RentalDTO, ensuring that only the necessary data is exposed to the client.
+     * 3. The RentalDTO is then wrapped in a ResponseEntity and returned with an HTTP status of 200 OK.
+     * 4. If no rental is found for the provided ID, a ResponseEntity with an HTTP status of 404 Not Found is returned.
+     * This approach ensures that the API's response structure and the underlying domain model can evolve
+     * independently, providing flexibility and a stable contract to API consumers.
      *
      * @param id The ID of the rental to retrieve.
-     * @return A ResponseEntity containing the rental if found, or a NOT FOUND status if not.
+     * @return A ResponseEntity containing the RentalDTO if the rental is found, or a 404 Not Found status if not.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Rental> getRentalById(@PathVariable Long id) {
+    public ResponseEntity<?> getRentalById(@PathVariable Long id) {
         return rentalService.findRentalById(id)
+                .map(rentalService::convertToDTO) // Utilisez la méthode de référence ici
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -199,13 +205,11 @@ public class RentalController {
 
             rentalService.saveRental(rental);
 
-            return ResponseEntity.ok().body("Rental updated successfully!");
+            return ResponseEntity.ok().body(Map.of("message", "Rental updated!"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating rental: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error updating rental: " + e.getMessage()));
         }
     }
-
-
 
     /**
      * Stores the uploaded picture file on the disk.
