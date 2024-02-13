@@ -3,6 +3,7 @@ package com.openclassrooms.projet3.controller;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,7 +34,7 @@ public class AuthController {
      * Takes a RegistrationRequest object containing user details and registers a new user.
      *
      * @param registrationRequest the registration request containing user details
-     * @return ResponseEntity containing the registered DBUser object
+     * @return ResponseEntity with empty body
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest registrationRequest) {
@@ -41,7 +42,7 @@ public class AuthController {
                 registrationRequest.getName(),
                 registrationRequest.getEmail(),
                 registrationRequest.getPassword());
-        return ResponseEntity.ok(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Collections.emptyMap()); // Return an empty object in the response body
     }
 
     /**
@@ -55,7 +56,7 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        loginRequest.getName(),
+                        loginRequest.getLogin(),
                         loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication); // Update security context with authentication token
@@ -63,5 +64,6 @@ public class AuthController {
         String jwt = jwtService.generateToken(authentication); // Generate JWT token for the authenticated user
         return ResponseEntity.ok(Collections.singletonMap("token", jwt));
     }
+
 
 }
