@@ -3,6 +3,7 @@ package com.openclassrooms.projet3.controller;
 import java.util.Collections;
 import java.util.Map;
 
+import com.openclassrooms.projet3.dtos.UserDTO;
 import com.openclassrooms.projet3.repository.DBUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -81,12 +82,11 @@ public class AuthController {
 
         DBUser user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        var response = Map.of(
-                "id", user.getId(),
-                "name", user.getName(),
-                "email", user.getEmail(),
-                "created_at", user.getCreatedAt(),
-                "updated_at", user.getUpdatedAt());
+        UserDTO response = new UserDTO(user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getCreatedAt(),
+                user.getUpdatedAt());
 
         return ResponseEntity.ok(response);
     }
