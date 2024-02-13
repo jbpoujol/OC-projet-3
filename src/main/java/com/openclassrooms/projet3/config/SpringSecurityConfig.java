@@ -22,9 +22,11 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 @Configuration
 @EnableWebSecurity
-public class SpringSecurityConfig {
+public class SpringSecurityConfig{
 
     private final String jwtKey = "8057c928235c5fe10d5319d2adde81f2b59d8f0399c2cdd79791aef4477f6e41";
+
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
