@@ -17,17 +17,24 @@ import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.JwtService;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
     @Autowired
-    private DBUserService dbUserService;
+    private DBUserService dbUserService; // Service for user-related database operations
 
     @Autowired
-    private JwtService jwtService;
+    private JwtService jwtService; // Service for JWT token generation
 
     @Autowired
-    private AuthenticationManager authenticationManager;
+    private AuthenticationManager authenticationManager; // Manager for handling authentication process
 
+    /**
+     * Endpoint for user registration.
+     * Takes a RegistrationRequest object containing user details and registers a new user.
+     *
+     * @param registrationRequest the registration request containing user details
+     * @return ResponseEntity containing the registered DBUser object
+     */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest registrationRequest) {
         DBUser user = dbUserService.registerUser(
@@ -36,14 +43,14 @@ public class AuthController {
                 registrationRequest.getPassword());
         return ResponseEntity.ok(user);
     }
-    /*
-     * @PostMapping("/login")
-     * public String getToken(Authentication authentication) {
-     * String token = jwtService.generateToken(authentication);
-     * return token;
-     * }
-     */
 
+    /**
+     * Endpoint for user login.
+     * Authenticates the user with provided credentials and generates a JWT token upon successful authentication.
+     *
+     * @param loginRequest the login request containing user credentials
+     * @return ResponseEntity with a map containing the JWT token
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -51,9 +58,9 @@ public class AuthController {
                         loginRequest.getName(),
                         loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication); // Update security context with authentication token
 
-        String jwt = jwtService.generateToken(authentication);
+        String jwt = jwtService.generateToken(authentication); // Generate JWT token for the authenticated user
         return ResponseEntity.ok(Collections.singletonMap("token", jwt));
     }
 

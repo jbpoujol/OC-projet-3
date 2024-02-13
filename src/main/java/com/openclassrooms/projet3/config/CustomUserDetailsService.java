@@ -26,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         DBUser user = dbUserRepository.findByName(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         // Exemple avec des autorités hardcodées, ajustez selon votre modèle
-        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("USER"));
         return new User(user.getName(), user.getPassword(), authorities);
     }
 }
