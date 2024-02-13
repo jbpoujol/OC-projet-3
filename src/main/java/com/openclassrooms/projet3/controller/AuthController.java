@@ -1,7 +1,9 @@
 package com.openclassrooms.projet3.controller;
 
 import java.util.Collections;
+import java.util.Map;
 
+import com.openclassrooms.projet3.repository.DBUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,9 @@ public class AuthController {
 
     @Autowired
     private AuthenticationManager authenticationManager; // Manager for handling authentication process
+
+    @Autowired
+    private DBUserRepository userRepository; // Repository for user data
 
     /**
      * Endpoint for user registration.
@@ -65,5 +70,25 @@ public class AuthController {
         return ResponseEntity.ok(Collections.singletonMap("token", jwt));
     }
 
+    /**
+     * Endpoint to retrieve current authenticated user's details.
+     * @return ResponseEntity containing the user's details
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUserDetails() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName(); // Assuming the username is the email for authenticated user
+
+        DBUser user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        var response = Map.of(
+                "id", user.getId(),
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "created_at", user.getCreatedAt(),
+                "updated_at", user.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
+    }
 
 }
