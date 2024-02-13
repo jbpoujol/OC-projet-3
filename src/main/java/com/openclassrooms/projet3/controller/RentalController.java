@@ -10,8 +10,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.openclassrooms.projet3.dtos.RentalDTO;
@@ -25,6 +30,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
+@Validated
 @RestController
 @RequestMapping("/api/rentals")
 public class RentalController {
@@ -39,12 +45,10 @@ public class RentalController {
 
     /**
      * Handles the GET request to retrieve all rentals.
-     *
      * This method fetches all rental entities using the rental service, converts each entity
      * to its Data Transfer Object (DTO) representation, and then collects them into a list.
      * The list of RentalDTO objects is then encapsulated within a Map under the key 'rentals',
      * allowing the response to be easily extended in the future with additional data if necessary.
-     *
      * The use of StreamSupport along with the spliterator of the Iterable allows for
      * efficient streaming and transformation of the rental entities to DTOs.
      *
@@ -84,33 +88,34 @@ public class RentalController {
     }
 
     /**
-     * Handles the POST request to create a new rental.
-     * This method accepts rental information as multipart/form-data, allowing for both text fields
-     * and a file upload within a single request. It extracts rental properties from the request parameters,
-     * stores the uploaded picture file on the disk, and saves the rental information along with the picture URL
-     * in the database.
-     * The method performs the following steps:
-     * 1. Extracts user details from the security context to identify the rental owner.
-     * 2. Saves the uploaded picture to the disk and generates a URL for accessing the picture.
-     * 3. Creates a new Rental object with the provided details and the generated picture URL.
-     * 4. Persists the new Rental object to the database.
-     * 5. Returns a response entity with a success message if the rental is created successfully.
-     * If any step fails, the method catches the exception and returns an internal server error response
-     * indicating that the rental could not be created.
+     * Creates a new rental property with validated input data.
+     * This method handles a POST request to create a new rental. It validates the input data to ensure
+     * it adheres to specified constraints, such as non-blank values for name and description, and positive
+     * values for surface area and price. If the validation fails, a 400 Bad Request response is automatically
+     * returned with validation error messages. The picture file is not validated by annotations but is checked
+     * for emptiness before processing.
+     * The process involves:
+     * 1. Validating the incoming request parameters against the defined constraints.
+     * 2. Extracting the authenticated user's email from the security context to set as the rental's owner.
+     * 3. Storing the uploaded picture on the disk and generating its URL for the rental entity.
+     * 4. Creating and saving the new Rental entity with the provided and validated values.
+     * 5. Returning a success response if the rental is created successfully.
      *
-     * @param name the name of the rental property
-     * @param surface the surface area of the rental property
-     * @param price the price of the rental property
-     * @param description a description of the rental property
-     * @param picture the picture file of the rental property
-     * @return a ResponseEntity containing a success message and a 201 Created status code if successful,
-     *         or an error message and a 500 Internal Server Error status code if an exception occurs.
+     * @param name The name of the rental, must not be blank.
+     * @param surface The surface area of the rental, must be a positive integer.
+     * @param price The price of the rental, must be a positive value.
+     * @param description The description of the rental, must not be blank.
+     * @param picture The picture file for the rental, must not be empty.
+     * @return A ResponseEntity with a success message and a 201 Created status if successful,
+     *         or an error message with a 400 Bad Request status if validation fails,
+     *         or a 500 Internal Server Error status if an exception occurs during the creation process.
      */
+
     @PostMapping()
-    public ResponseEntity<?> createRental(@RequestParam("name") String name,
-                                          @RequestParam("surface") int surface,
-                                          @RequestParam("price") double price,
-                                          @RequestParam("description") String description,
+    public ResponseEntity<?> createRental(@RequestParam @NotBlank(message = "Name cannot be blank") String name,
+                                          @RequestParam @NotNull(message = "Surface cannot be null") @Positive(message = "Surface must be positive") int surface,
+                                          @RequestParam @NotNull(message = "Price cannot be null") @Positive(message = "Price must be positive") double price,
+                                          @RequestParam @NotBlank(message = "Description cannot be blank") String description,
                                           @RequestParam("picture") MultipartFile picture) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -138,6 +143,69 @@ public class RentalController {
             ));
         }
     }
+
+
+    /**
+     * Updates an existing rental property by its ID with validated input data.
+     * This method handles a PUT request to update a rental's details including its name, surface area, price,
+     * description, and optionally, a new picture. The method validates the input data to ensure it meets specified
+     * constraints, such as non-null values for certain fields and positive values for numeric fields. If the validation
+     * fails, a 400 Bad Request response is automatically returned with validation error messages.
+     * Steps involved in the process:
+     * 1. Validates the incoming request parameters against the defined constraints.
+     * 2. Retrieves the existing rental entity by its ID. If not found, throws an exception.
+     * 3. Updates the rental entity's properties with the provided and validated values.
+     * 4. If a new picture file is provided and is not empty, it replaces the existing picture. The file is stored
+     *    on the disk, and its storage path or URL is saved in the rental entity.
+     * 5. Persists the updated rental entity to the database.
+     * 6. Returns a success response if the rental is updated successfully.
+     * Input parameters are validated for:
+     * - Name and description must not be blank.
+     * - Surface must be a non-null value greater than 0.
+     * - Price must be a non-null positive value.
+     * If a new picture is uploaded, it is processed and stored, and its URL is updated in the rental entity.
+     *
+     * @param id The ID of the rental to update.
+     * @param name The new name of the rental, must not be blank.
+     * @param surface The new surface area of the rental, must be a positive integer.
+     * @param price The new price of the rental, must be a positive value.
+     * @param description The new description of the rental, must not be blank.
+     * @param picture (Optional) A new picture file for the rental. If provided, it replaces the existing picture.
+     * @return A ResponseEntity with a success message and a 200 OK status if successful,
+     *         or an error message with a 400 Bad Request status if validation fails,
+     *         or a 500 Internal Server Error status if an exception occurs during the update process.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateRental(@PathVariable Long id,
+                                          @RequestParam @NotBlank(message = "Name cannot be empty") String name,
+                                          @RequestParam @NotNull(message = "Surface cannot be null")
+                                          @Min(value = 1, message = "Surface must be greater than 0") int surface,
+                                          @RequestParam @NotNull(message = "Price cannot be null")
+                                          @Positive(message = "Price must be positive") double price,
+                                          @RequestParam @NotBlank(message = "Description cannot be empty") String description,
+                                          @RequestParam(value = "picture", required = false) MultipartFile picture) {
+        try {
+            Rental rental = rentalService.findRentalById(id).orElseThrow(() -> new Exception("Rental not found"));
+
+            rental.setName(name);
+            rental.setSurface(surface);
+            rental.setPrice(price);
+            rental.setDescription(description);
+
+            if (picture != null && !picture.isEmpty()) {
+                String pictureUrl = storePicture(picture);
+                rental.setPicture(pictureUrl);
+            }
+
+            rentalService.saveRental(rental);
+
+            return ResponseEntity.ok().body("Rental updated successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating rental: " + e.getMessage());
+        }
+    }
+
+
 
     /**
      * Stores the uploaded picture file on the disk.
@@ -174,37 +242,6 @@ public class RentalController {
         }
         file.transferTo(destinationFile);
         return destinationFile.toString();
-    }
-
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateRental(@PathVariable Long id, @RequestBody Rental rentalDetails) {
-        try {
-            Rental existingRental = rentalService.findRentalById(id)
-                    .orElseThrow(
-                            () -> rentalService.new ResourceNotFoundException("Rental not found for this id :: " + id));
-
-            if (rentalDetails.getName() != null)
-                existingRental.setName(rentalDetails.getName());
-            if (rentalDetails.getSurface() != 0)
-                existingRental.setSurface(rentalDetails.getSurface());
-            if (rentalDetails.getPrice() != 0.0)
-                existingRental.setPrice(rentalDetails.getPrice());
-            if (rentalDetails.getPicture() != null)
-                existingRental.setPicture(rentalDetails.getPicture());
-            if (rentalDetails.getDescription() != null)
-                existingRental.setDescription(rentalDetails.getDescription());
-
-            rentalService.saveRental(existingRental);
-
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Rental updated!");
-            return ResponseEntity.ok(response);
-        } catch (ResourceNotFoundException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Rental not found for this id :: " + id);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
     }
 
 }
