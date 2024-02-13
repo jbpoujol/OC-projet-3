@@ -1,5 +1,9 @@
 package com.openclassrooms.projet3.controller;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,13 +12,7 @@ import java.util.stream.StreamSupport;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.model.DBUser;
@@ -25,6 +23,7 @@ import com.openclassrooms.projet3.service.RentalService.ResourceNotFoundExceptio
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/rentals")
@@ -84,19 +83,99 @@ public class RentalController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<?> createRental(@RequestBody Rental rental) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        DBUser owner = dbUserService.find(username);
+    /**
+     * Handles the POST request to create a new rental.
+     * This method accepts rental information as multipart/form-data, allowing for both text fields
+     * and a file upload within a single request. It extracts rental properties from the request parameters,
+     * stores the uploaded picture file on the disk, and saves the rental information along with the picture URL
+     * in the database.
+     * The method performs the following steps:
+     * 1. Extracts user details from the security context to identify the rental owner.
+     * 2. Saves the uploaded picture to the disk and generates a URL for accessing the picture.
+     * 3. Creates a new Rental object with the provided details and the generated picture URL.
+     * 4. Persists the new Rental object to the database.
+     * 5. Returns a response entity with a success message if the rental is created successfully.
+     * If any step fails, the method catches the exception and returns an internal server error response
+     * indicating that the rental could not be created.
+     *
+     * @param name the name of the rental property
+     * @param surface the surface area of the rental property
+     * @param price the price of the rental property
+     * @param description a description of the rental property
+     * @param picture the picture file of the rental property
+     * @return a ResponseEntity containing a success message and a 201 Created status code if successful,
+     *         or an error message and a 500 Internal Server Error status code if an exception occurs.
+     */
+    @PostMapping()
+    public ResponseEntity<?> createRental(@RequestParam("name") String name,
+                                          @RequestParam("surface") int surface,
+                                          @RequestParam("price") double price,
+                                          @RequestParam("description") String description,
+                                          @RequestParam("picture") MultipartFile picture) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+            DBUser owner = dbUserService.find(email);
 
-        rental.setOwner(owner);
-        rentalService.saveRental(rental);
+            String pictureUrl = storePicture(picture);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Rental created!");
-        return ResponseEntity.ok(response);
+            Rental rental = new Rental();
+            rental.setName(name);
+            rental.setSurface(surface);
+            rental.setPrice(price);
+            rental.setDescription(description);
+            rental.setPicture(pictureUrl);
+            rental.setOwner(owner);
+
+            rentalService.saveRental(rental);
+
+            // Just return the message with HTTP status 201 Created
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Rental created!"));
+        } catch (Exception e) {
+            // Handle exception (e.g., IOException from file storage or any other exception)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "Could not create the rental"
+            ));
+        }
     }
+
+    /**
+     * Stores the uploaded picture file on the disk.
+     * This method performs several checks and operations to securely save the uploaded file:
+     * 1. It checks if the uploaded file is not empty, throwing an IOException if it is.
+     * 2. It defines a directory path where the files should be stored and checks if this directory exists.
+     *    If the directory does not exist, it creates it.
+     * 3. It generates a unique filename for the uploaded file to prevent overwriting existing files.
+     *    This is done by prefixing the original filename with the current system time in milliseconds.
+     * 4. It resolves the path where the file should be stored and normalizes it to ensure it's a valid path.
+     * 5. It checks to ensure the file is being stored within the predefined directory to prevent directory traversal attacks.
+     * 6. It transfers the file to the resolved destination path.
+     * 7. It returns the absolute path of the stored file as a string.
+     *
+     * @param file the MultipartFile object representing the uploaded picture.
+     * @return the absolute path to the stored file as a String.
+     * @throws IOException if the file is empty, if there's an issue creating the directories,
+     *         if the file cannot be stored outside the predefined directory, or if there's an error during file transfer.
+     */
+    private String storePicture(MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new IOException("Failed to store empty file.");
+        }
+        String uploadsDirPath = "uploads";
+        Path uploadsDir = Paths.get(uploadsDirPath);
+        if (!Files.exists(uploadsDir)) {
+            Files.createDirectories(uploadsDir);
+        }
+        String filename = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        Path destinationFile = uploadsDir.resolve(filename).normalize().toAbsolutePath();
+
+        if (!destinationFile.getParent().equals(uploadsDir.toAbsolutePath())) {
+            throw new IOException("Cannot store file outside of the predefined directory.");
+        }
+        file.transferTo(destinationFile);
+        return destinationFile.toString();
+    }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateRental(@PathVariable Long id, @RequestBody Rental rentalDetails) {

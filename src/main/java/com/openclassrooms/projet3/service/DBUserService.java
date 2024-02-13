@@ -30,9 +30,9 @@ public class DBUserService {
         return dbUserRepository.save(newUser);
     }
 
-    public DBUser find(String name) {
-        return dbUserRepository.findByName(name)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + name));
+    public DBUser find(String email) {
+        return dbUserRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 
 }
