@@ -43,32 +43,36 @@ public class AuthController {
     /**
      * Endpoint for user registration.
      * Takes a RegistrationRequest object containing user details and registers a new user.
+     * Upon successful registration, returns a JWT token for the user.
      *
      * @param registrationRequest the registration request containing user details
-     * @return ResponseEntity with empty body
+     * @return ResponseEntity with JWT token
      */
     @PostMapping("/register")
-    @Operation(summary = "Register a new user",
+    @Operation(summary = "Register a new user and return a JWT token",
             responses = {
-                    @ApiResponse(responseCode = "201", description = "User registered successfully",
+                    @ApiResponse(responseCode = "201", description = "User registered successfully, JWT token returned",
                             content = @Content(mediaType = "application/json",
-                                    examples = @ExampleObject(value = """
-                                                      {}
-                                                      """))),
+                                    examples = @ExampleObject(value = "{\"token\": \"jwt\"}"))),
                     @ApiResponse(responseCode = "500", description = "Internal server error",
                             content = @Content(mediaType = "application/json",
-                                    examples = @ExampleObject(value = """
-                                                      {
-                                                          "error": "Could not register the user. Please try again later."
-                                                      }
-                                                      """)))
+                                    examples = @ExampleObject(value = "{\"error\": \"Could not register the user. Please try again later.\"}")))
             })
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest registrationRequest) {
-        DBUser user = dbUserService.registerUser(
-                registrationRequest.getName(),
-                registrationRequest.getEmail(),
-                registrationRequest.getPassword());
-        return ResponseEntity.status(HttpStatus.CREATED).body(Collections.emptyMap()); // Return an empty object in the response body
+        try {
+            DBUser user = dbUserService.registerUser(
+                    registrationRequest.getName(),
+                    registrationRequest.getEmail(),
+                    registrationRequest.getPassword());
+
+            // Generate token for the new user
+            String token = jwtService.generateTokenForUser(user);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("token", token));
+        } catch (Exception e) {
+            // Handle the exception appropriately
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not register the user. Please try again later."));
+        }
     }
 
     /**
