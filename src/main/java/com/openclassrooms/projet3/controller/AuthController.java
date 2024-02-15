@@ -5,6 +5,11 @@ import java.util.Map;
 
 import com.openclassrooms.projet3.dtos.UserDTO;
 import com.openclassrooms.projet3.repository.DBUserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +48,21 @@ public class AuthController {
      * @return ResponseEntity with empty body
      */
     @PostMapping("/register")
+    @Operation(summary = "Register a new user",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "User registered successfully",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                                      {}
+                                                      """))),
+                    @ApiResponse(responseCode = "500", description = "Internal server error",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                                      {
+                                                          "error": "Could not register the user. Please try again later."
+                                                      }
+                                                      """)))
+            })
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest registrationRequest) {
         DBUser user = dbUserService.registerUser(
                 registrationRequest.getName(),
@@ -59,6 +79,23 @@ public class AuthController {
      * @return ResponseEntity with a map containing the JWT token
      */
     @PostMapping("/login")
+    @Operation(summary = "Login user and return JWT token",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Login successful",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                                  {
+                                                      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                                  }
+                                                  """))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                                  {
+                                                      "error": "Invalid username or password"
+                                                  }
+                                                  """)))
+            })
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -76,6 +113,28 @@ public class AuthController {
      * @return ResponseEntity containing the user's details
      */
     @GetMapping("/me")
+    @Operation(summary = "Get current user details",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Current user details retrieved successfully",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UserDTO.class),
+                                    examples = @ExampleObject(value = """
+                                                      {
+                                                          "id": 1,
+                                                          "name": "John Doe",
+                                                          "email": "john.doe@example.com",
+                                                          "createdAt": "2020-01-01",
+                                                          "updatedAt": "2020-01-02"
+                                                      }
+                                                      """))),
+                    @ApiResponse(responseCode = "404", description = "User not found",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                                      {
+                                                          "error": "User not found"
+                                                      }
+                                                      """)))
+            })
     public ResponseEntity<?> getCurrentUserDetails() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName(); // Assuming the username is the email for authenticated user
