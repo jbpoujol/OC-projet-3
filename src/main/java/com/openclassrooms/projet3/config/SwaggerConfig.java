@@ -23,7 +23,7 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
-                .info(new Info().title("API Title").version("1.0").description("API Description"))
+                .info(new Info().title("Châtop API").version("1.0").description("Cette API a été conçue pour fournir le backend nécessaire à notre application Angular, permettant de passer de données mockées à une véritable interaction avec une base de données. Elle sert de pont entre les utilisateurs de notre plateforme et les données stockées, gérant l'authentification, la consultation, la création et la gestion des annonces de locations saisonnières."))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new io.swagger.v3.oas.models.Components()
                         .addSecuritySchemes(securitySchemeName,
