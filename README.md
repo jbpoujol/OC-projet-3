@@ -82,10 +82,6 @@ Après avoir créé les tables, configurez la connexion à votre base de donnée
 spring.datasource.url=jdbc:mysql://localhost:3306/nom_de_votre_base?serverTimezone=UTC
 spring.datasource.username=votre_utilisateur
 spring.datasource.password=votre_mot_de_passe
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
 ```
 
 Remplacez `nom_de_votre_base`, `votre_utilisateur` et `votre_mot_de_passe` par les valeurs correspondant à votre environnement.
@@ -100,7 +96,7 @@ Ces configurations permettent à Spring Boot de se connecter à votre base de do
 
 ### Utilisation de l'API
 
-Après le démarrage de l'application, l'API est accessible à l'adresse `http://localhost:3001`. Utilisez la collection Postman fournie pour explorer et tester les différents endpoints.
+Après le démarrage de l'application, l'API est accessible à l'adresse `http://localhost:3001/api`. Utilisez la collection Postman fournie pour explorer et tester les différents endpoints.
 
 ### Documentation Swagger
 
