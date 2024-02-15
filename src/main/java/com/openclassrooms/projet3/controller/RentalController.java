@@ -10,11 +10,18 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -56,6 +63,39 @@ public class RentalController {
      *         which is then serialized into a JSON object response.
      */
     @GetMapping
+    @Operation(summary = "Get all rentals",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Successful retrieval of rental list",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "rentals": [
+                                       {
+                                           "id": 1,
+                                           "name": "Charming Cottage",
+                                           "surface": 120,
+                                           "price": 1500.00,
+                                           "picture": "http://example.com/images/cottage.jpg",
+                                           "description": "A charming cottage in the countryside, perfect for a weekend getaway.",
+                                           "owner_id": 42,
+                                           "created_at": "2023-01-15T14:30:00Z",
+                                           "updated_at": "2023-02-01T10:15:00Z"
+                                       },
+                                       {
+                                           "id": 2,
+                                           "name": "Urban Loft",
+                                           "surface": 85,
+                                           "price": 2100.00,
+                                           "picture": "http://example.com/images/loft.jpg",
+                                           "description": "Stylish loft in the heart of the city, close to amenities and nightlife.",
+                                           "owner_id": 85,
+                                           "created_at": "2023-01-20T11:00:00Z",
+                                           "updated_at": "2023-01-28T09:20:00Z"
+                                       }
+                                   ]
+                               }
+                               """)))
+            })
     public Map<String, Object> getRentals() {
         Iterable<Rental> rentalsIterable = rentalService.findAllRentals();
         List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
@@ -86,6 +126,25 @@ public class RentalController {
      * @return A ResponseEntity containing the RentalDTO if the rental is found, or a 404 Not Found status if not.
      */
     @GetMapping("/{id}")
+    @Operation(summary = "Get a rental by its ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Successful retrieval",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = RentalDTO.class),
+                                    examples = @ExampleObject(value = """
+                           {
+                               "id": 1,
+                               "name": "Charming Cottage",
+                               "surface": 120,
+                               "price": 1500.00,
+                               "picture": "http://example.com/images/cottage.jpg",
+                               "description": "A charming cottage in the countryside, perfect for a weekend getaway.",
+                               "owner_id": 42,
+                               "created_at": "2023-01-15",
+                               "updated_at": "2023-02-01"
+                           }
+                           """)))
+            })
     public ResponseEntity<?> getRentalById(@PathVariable Long id) {
         return rentalService.findRentalById(id)
                 .map(rentalService::convertToDTO) // Utilisez la méthode de référence ici
@@ -117,12 +176,30 @@ public class RentalController {
      *         or a 500 Internal Server Error status if an exception occurs during the creation process.
      */
 
-    @PostMapping()
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create a new rental", operationId = "createRental",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Rental created successfully",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "message": "Rental created successfully!"
+                               }
+                               """))),
+                    @ApiResponse(responseCode = "500", description = "Internal server error",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "error": "Could not create the rental"
+                               }
+                               """)))
+
+            })
     public ResponseEntity<?> createRental(@RequestParam @NotBlank(message = "Name cannot be blank") String name,
                                           @RequestParam @NotNull(message = "Surface cannot be null") @Positive(message = "Surface must be positive") int surface,
                                           @RequestParam @NotNull(message = "Price cannot be null") @Positive(message = "Price must be positive") double price,
                                           @RequestParam @NotBlank(message = "Description cannot be blank") String description,
-                                          @RequestParam("picture") MultipartFile picture) {
+                                          @RequestParam(name = "picture", required = true) MultipartFile picture) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
@@ -181,7 +258,31 @@ public class RentalController {
      *         or an error message with a 400 Bad Request status if validation fails,
      *         or a 500 Internal Server Error status if an exception occurs during the update process.
      */
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update an existing rental",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Rental successfully updated",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "message": "Rental updated!"
+                               }
+                               """))),
+                    @ApiResponse(responseCode = "500", description = "Error updating rental",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "message": "Error updating rental: [Error details here]"
+                               }
+                               """))),
+                    @ApiResponse(responseCode = "404", description = "Rental not found",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "message": "Rental not found"
+                               }
+                               """)))
+            })
     public ResponseEntity<?> updateRental(@PathVariable Long id,
                                           @RequestParam @NotBlank(message = "Name cannot be empty") String name,
                                           @RequestParam @NotNull(message = "Surface cannot be null")
