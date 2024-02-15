@@ -24,6 +24,7 @@ import com.openclassrooms.projet3.model.LoginRequest;
 import com.openclassrooms.projet3.model.RegistrationRequest;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.JwtService;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -52,23 +53,34 @@ public class AuthController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "User registered successfully",
                             content = @Content(mediaType = "application/json",
-                                    examples = @ExampleObject(value = """
-                                                      {}
-                                                      """))),
+                                    examples = @ExampleObject(value = "{}"))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input data",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = "{\"error\": \"Invalid input data\"}"))),
+                    @ApiResponse(responseCode = "409", description = "Conflict - Email already in use",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = "{\"error\": \"Email already in use\"}"))),
                     @ApiResponse(responseCode = "500", description = "Internal server error",
                             content = @Content(mediaType = "application/json",
-                                    examples = @ExampleObject(value = """
-                                                      {
-                                                          "error": "Could not register the user. Please try again later."
-                                                      }
-                                                      """)))
+                                    examples = @ExampleObject(value = "{\"error\": \"Could not register the user. Please try again later.\"}")))
             })
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest registrationRequest) {
-        DBUser user = dbUserService.registerUser(
-                registrationRequest.getName(),
-                registrationRequest.getEmail(),
-                registrationRequest.getPassword());
-        return ResponseEntity.status(HttpStatus.CREATED).body(Collections.emptyMap()); // Return an empty object in the response body
+        try {
+            DBUser user = dbUserService.registerUser(
+                    registrationRequest.getName(),
+                    registrationRequest.getEmail(),
+                    registrationRequest.getPassword());
+            return ResponseEntity.status(HttpStatus.CREATED).body(Collections.emptyMap());
+        } catch (IllegalArgumentException e) {
+            // Catch block for input validation exceptions
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (IllegalStateException e) {
+            // Catch block for email already in use
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (Exception e) {
+            // General catch block for unexpected exceptions
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not register the user. Please try again later.");
+        }
     }
 
     /**

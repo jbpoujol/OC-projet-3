@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -203,7 +204,12 @@ public class RentalController {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
-            DBUser owner = dbUserService.find(email);
+            Optional<DBUser> ownerOptional = dbUserService.find(email);
+            if (ownerOptional.isEmpty()) {
+                // Gestion du cas où l'utilisateur n'est pas trouvé
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Owner not found"));
+            }
+            DBUser owner = ownerOptional.get();
 
             String pictureUrl = storePicture(picture);
 

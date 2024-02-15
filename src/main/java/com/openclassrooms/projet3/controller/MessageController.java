@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -81,9 +82,17 @@ public class MessageController {
             })
     public ResponseEntity<?> createMessage(@RequestBody @Valid MessageDTO messageDTO) {
         try {
-            Rental rental = rentalService.findRentalById(messageDTO.getRental_id())
-                    .orElseThrow(() -> new RuntimeException("Rental not found"));
-            DBUser user = dbUserService.findUserById(messageDTO.getUser_id());
+            Optional<Rental> rentalOptional = rentalService.findRentalById(messageDTO.getRental_id());
+            if (rentalOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Rental not found"));
+            }
+            Rental rental = rentalOptional.get();
+
+            Optional<DBUser> userOptional = dbUserService.findUserById(messageDTO.getUser_id());
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
+            }
+            DBUser user = userOptional.get();
 
             Message message = new Message();
             message.setRental(rental);
@@ -97,5 +106,6 @@ public class MessageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not send the message. Please try again later."));
         }
     }
+
 
 }
