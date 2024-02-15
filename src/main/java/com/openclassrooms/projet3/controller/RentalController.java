@@ -37,6 +37,7 @@ import com.openclassrooms.projet3.service.RentalService.ResourceNotFoundExceptio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Validated
 @RestController
@@ -319,22 +320,26 @@ public class RentalController {
     }
 
     /**
-     * Stores the uploaded picture file on the disk.
-     * This method performs several checks and operations to securely save the uploaded file:
-     * 1. It checks if the uploaded file is not empty, throwing an IOException if it is.
-     * 2. It defines a directory path where the files should be stored and checks if this directory exists.
-     *    If the directory does not exist, it creates it.
-     * 3. It generates a unique filename for the uploaded file to prevent overwriting existing files.
-     *    This is done by prefixing the original filename with the current system time in milliseconds.
-     * 4. It resolves the path where the file should be stored and normalizes it to ensure it's a valid path.
-     * 5. It checks to ensure the file is being stored within the predefined directory to prevent directory traversal attacks.
-     * 6. It transfers the file to the resolved destination path.
-     * 7. It returns the absolute path of the stored file as a string.
+     * Stores the uploaded file in the server's filesystem and returns the URL to access the file.
+     * This method performs several checks and operations to securely store an uploaded file:
+     * - Validates that the file is not empty to prevent storing unnecessary data.
+     * - Determines the 'uploads' directory path where the file will be stored. If the directory
+     *   doesn't exist, it creates it.
+     * - Generates a unique filename for the uploaded file to avoid name collisions and maintain
+     *   the original file extension. This is achieved by prefixing the original filename with
+     *   the current timestamp.
+     * - Validates that the file will be stored within the predefined 'uploads' directory to
+     *   prevent directory traversal attacks.
+     * - Transfers the file to its final destination in the filesystem.
+     * - Constructs a URL that can be used to access the uploaded file. The URL is based on
+     *   the current context path of the application, ensuring compatibility across different
+     *   deployment environments.
      *
-     * @param file the MultipartFile object representing the uploaded picture.
-     * @return the absolute path to the stored file as a String.
-     * @throws IOException if the file is empty, if there's an issue creating the directories,
-     *         if the file cannot be stored outside the predefined directory, or if there's an error during file transfer.
+     * @param file the multipart file uploaded by the user.
+     * @return A String representing the URL to access the uploaded file.
+     * @throws IOException if the file is empty, if there's an error creating the 'uploads'
+     *         directory, if the file cannot be stored securely, or if there's an error during
+     *         the file transfer.
      */
     private String storePicture(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
@@ -346,13 +351,16 @@ public class RentalController {
             Files.createDirectories(uploadsDir);
         }
         String filename = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        Path destinationFile = uploadsDir.resolve(filename).normalize().toAbsolutePath();
+        Path destinationFile = uploadsDir.resolve(Paths.get(filename)).normalize().toAbsolutePath();
 
         if (!destinationFile.getParent().equals(uploadsDir.toAbsolutePath())) {
             throw new IOException("Cannot store file outside of the predefined directory.");
         }
+
         file.transferTo(destinationFile);
-        return destinationFile.toString();
+
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+        return baseUrl + "/uploads/" + filename;
     }
 
 }
