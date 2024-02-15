@@ -7,13 +7,16 @@ import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.MessageService;
 import com.openclassrooms.projet3.service.RentalService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -59,6 +62,23 @@ public class MessageController {
      *         an error message if an exception occurs.
      */
     @PostMapping
+    @Operation(summary = "Create a new message",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Message sent successfully",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "message": "Message sent with success"
+                               }
+                               """))),
+                    @ApiResponse(responseCode = "500", description = "Internal server error",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "error": "Could not send the message. Please try again later."
+                               }
+                               """)))
+            })
     public ResponseEntity<?> createMessage(@RequestBody @Valid MessageDTO messageDTO) {
         try {
             Rental rental = rentalService.findRentalById(messageDTO.getRental_id())
@@ -74,7 +94,7 @@ public class MessageController {
 
             return ResponseEntity.ok(Map.of("message", "Message sent with success"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not send the message. Please try again later."));
         }
     }
 
