@@ -1,4 +1,4 @@
-package com.openclassrooms.projet3.config;
+package com.openclassrooms.projet3.service.impl;
 
 import java.util.Collections;
 import java.util.List;

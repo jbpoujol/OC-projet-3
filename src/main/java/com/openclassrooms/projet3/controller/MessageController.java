@@ -6,7 +6,7 @@ import com.openclassrooms.projet3.model.Message;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.MessageService;
-import com.openclassrooms.projet3.service.RentalService;
+import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -28,7 +28,7 @@ public class MessageController {
     private MessageService messageService;
 
     @Autowired
-    private RentalService rentalService;
+    private RentalServiceImpl rentalService;
 
     @Autowired
     private DBUserService dbUserService;

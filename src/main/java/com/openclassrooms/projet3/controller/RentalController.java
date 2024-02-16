@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,8 +30,7 @@ import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.model.DBUser;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.DBUserService;
-import com.openclassrooms.projet3.service.RentalService;
-import com.openclassrooms.projet3.service.RentalService.ResourceNotFoundException;
+import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,10 +42,10 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/api/rentals")
 public class RentalController {
 
-    private final RentalService rentalService;
+    private final RentalServiceImpl rentalService;
     private final DBUserService dbUserService;
 
-    public RentalController(RentalService rentalService, DBUserService dbUserService) {
+    public RentalController(RentalServiceImpl rentalService, DBUserService dbUserService) {
         this.rentalService = rentalService;
         this.dbUserService = dbUserService;
     }
@@ -300,6 +298,8 @@ public class RentalController {
                                           @RequestParam(value = "picture", required = false) MultipartFile picture) {
         try {
             Rental rental = rentalService.findRentalById(id).orElseThrow(() -> new Exception("Rental not found"));
+
+            // TODO : check if the authenticated user is the owner of the rental in service layer
 
             rental.setName(name);
             rental.setSurface(surface);

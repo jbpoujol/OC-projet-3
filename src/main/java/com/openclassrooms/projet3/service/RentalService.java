@@ -1,69 +1,23 @@
 package com.openclassrooms.projet3.service;
 
+import com.openclassrooms.projet3.dtos.RentalDTO;
+import com.openclassrooms.projet3.model.Rental;
+
 import java.time.LocalDate;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+public interface RentalService {
 
-import com.openclassrooms.projet3.dtos.RentalDTO;
-import com.openclassrooms.projet3.model.Rental;
-import com.openclassrooms.projet3.repository.RentalRepository;
 
-@Service
-public class RentalService {
+    public Iterable<Rental> findAllRentals();
 
-    @Autowired
-    public RentalRepository rentalRepository;
+    public Optional<Rental> findRentalById(Long id);
 
-    public Iterable<Rental> findAllRentals() {
-        return rentalRepository.findAll();
-    }
+    public void saveRental(Rental Rental);
 
-    public Optional<Rental> findRentalById(Long id) {
-        return rentalRepository.findById(id);
-    }
+    public Rental updateRental(Long id, Rental rentalDetails) ;
 
-    public Rental saveRental(Rental Rental) {
-        return rentalRepository.save(Rental);
-    }
+    public void deleteRental(Long id);
 
-    public Rental updateRental(Long id, Rental rentalDetails) {
-        Rental rental = rentalRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Rental not found for this id :: " + id));
-
-        rental.setName(rentalDetails.getName());
-        rental.setSurface(rentalDetails.getSurface());
-        rental.setPrice(rentalDetails.getPrice());
-        rental.setPicture(rentalDetails.getPicture());
-        rental.setDescription(rentalDetails.getDescription());
-        rental.setUpdatedAt(LocalDate.now());
-        final Rental updatedRental = rentalRepository.save(rental);
-        return updatedRental;
-    }
-
-    public void deleteRental(Long id) {
-        rentalRepository.deleteById(id);
-    }
-
-    public class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) {
-            super(message);
-        }
-    }
-
-    public RentalDTO convertToDTO(Rental rental) {
-        RentalDTO dto = new RentalDTO();
-        dto.setId(rental.getId());
-        dto.setName(rental.getName());
-        dto.setSurface(rental.getSurface());
-        dto.setPrice(rental.getPrice());
-        dto.setPicture(rental.getPicture());
-        dto.setDescription(rental.getDescription());
-        dto.setCreated_at(rental.getCreatedAt().toString());
-        dto.setUpdated_at(rental.getUpdatedAt().toString());
-        dto.setOwner_id(rental.getOwner().getId());
-        return dto;
-    }
-
+    public RentalDTO convertToDTO(Rental rental);
 }
