@@ -76,23 +76,39 @@ CREATE UNIQUE INDEX `USERS_index` ON `USERS` (`email`);
 
 ### Configuration dans `application.properties`
 
-Après avoir créé les tables, configurez la connexion à votre base de données dans le fichier `src/main/resources/application.properties` de votre projet. Voici un exemple de configuration pour une base de données MySQL :
+Pour renforcer la sécurité, nous utilisons Jasypt pour chiffrer le mot de passe de la base de données dans le fichier `application.properties`. Voici comment procéder :
+
+#### Chiffrer le Mot de Passe de la Base de Données
+
+Utilisez la commande Maven suivante pour chiffrer votre mot de passe :
+
+```shell
+mvn jasypt:encrypt-value "-Djasypt.encryptor.password=jsyptkey" "-Djasypt.plugin.value=VotreMotDePasseDB"
+```
+
+Remplacez `VotreMotDePasseDB` par le mot de passe réel de votre base de données et `jsyptkey` par la clé que vous souhaitez utiliser pour le chiffrement.
+
+#### Configurer `application.properties`
+
+Dans votre fichier `src/main/resources/application.properties`, configurez votre connexion à la base de données avec le mot de passe chiffré :
 
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/nom_de_votre_base?serverTimezone=UTC
 spring.datasource.username=votre_utilisateur
-spring.datasource.password=votre_mot_de_passe
+spring.datasource.password=ENC(ValeurChiffrée)
 ```
 
-Remplacez `nom_de_votre_base`, `votre_utilisateur` et `votre_mot_de_passe` par les valeurs correspondant à votre environnement.
+Remplacez `ValeurChiffrée` par la sortie de la commande de chiffrement.
 
-Ces configurations permettent à Spring Boot de se connecter à votre base de données et d'interagir avec elle selon le modèle défini dans votre application.
+Pour déchiffrer le mot de passe au démarrage, fournissez la clé de chiffrement `jasyptkey` en tant qu'argument VM ou variable d'environnement.
 
-3. **Lancer l'Application :** Utilisez Maven pour lancer l'application.
+3. **Lancer l'Application :** Utilisez Maven pour lancer l'application en fournissant la clé de chiffrement.
 
     ```
-    mvn spring-boot:run
+    mvn spring-boot:run -Dspring-boot.run.arguments="--jasypt.encryptor.password=jsyptkey"
     ```
+
+Ou configurez la variable d'environnement `JASYPT_ENCRYPTOR_PASSWORD` avant de lancer l'application.
 
 ### Utilisation de l'API
 
