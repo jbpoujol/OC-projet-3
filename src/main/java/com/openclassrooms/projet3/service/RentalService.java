@@ -19,5 +19,11 @@ public interface RentalService {
 
     public void deleteRental(Long id);
 
+    public boolean isUserOwnerOfRental(Long rentalId);
+
+    private String getAuthenticatedUsername() {
+        return null;
+    }
+
     public RentalDTO convertToDTO(Rental rental);
 }

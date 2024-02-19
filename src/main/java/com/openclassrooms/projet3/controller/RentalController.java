@@ -269,24 +269,31 @@ public class RentalController {
                     @ApiResponse(responseCode = "200", description = "Rental successfully updated",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "message": "Rental updated!"
-                               }
-                               """))),
-                    @ApiResponse(responseCode = "500", description = "Error updating rental",
+                                   {
+                                       "message": "Rental updated!"
+                                   }
+                                   """))),
+                    @ApiResponse(responseCode = "403", description = "User is not the owner of the rental",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "message": "Error updating rental: [Error details here]"
-                               }
-                               """))),
+                                   {
+                                       "message": "User is not the owner of the rental"
+                                   }
+                                   """))),
                     @ApiResponse(responseCode = "404", description = "Rental not found",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "message": "Rental not found"
-                               }
-                               """)))
+                                   {
+                                       "message": "Rental not found"
+                                   }
+                                   """))),
+                    @ApiResponse(responseCode = "500", description = "Error updating rental",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                   {
+                                       "message": "Error updating rental: [Error details here]"
+                                   }
+                                   """)))
             })
     public ResponseEntity<?> updateRental(@PathVariable Long id,
                                           @RequestParam @NotBlank(message = "Name cannot be empty") String name,
@@ -299,8 +306,6 @@ public class RentalController {
         try {
             Rental rental = rentalService.findRentalById(id).orElseThrow(() -> new Exception("Rental not found"));
 
-            // TODO : check if the authenticated user is the owner of the rental in service layer
-
             rental.setName(name);
             rental.setSurface(surface);
             rental.setPrice(price);
@@ -311,7 +316,10 @@ public class RentalController {
                 rental.setPicture(pictureUrl);
             }
 
-            rentalService.saveRental(rental);
+            // Checking if the user is the owner of the rental before updating it
+            if (!rentalService.isUserOwnerOfRental(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "User is not the owner of the rental"));
+            }
 
             return ResponseEntity.ok().body(Map.of("message", "Rental updated!"));
         } catch (Exception e) {

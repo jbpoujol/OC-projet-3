@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import com.openclassrooms.projet3.service.RentalService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import com.openclassrooms.projet3.dtos.RentalDTO;
@@ -51,6 +53,22 @@ public class RentalServiceImpl implements RentalService {
             super(message);
         }
     }
+
+    public boolean isUserOwnerOfRental(Long rentalId) {
+        Rental rental = findRentalById(rentalId).orElseThrow(() -> new RuntimeException("Rental not found"));
+        String authenticatedUsername = getAuthenticatedUsername();
+        return rental.getOwner().getName().equals(authenticatedUsername);
+    }
+
+    private String getAuthenticatedUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails) {
+            return ((UserDetails) principal).getUsername();
+        } else {
+            return principal.toString();
+        }
+    }
+
 
     public RentalDTO convertToDTO(Rental rental) {
         RentalDTO dto = new RentalDTO();
