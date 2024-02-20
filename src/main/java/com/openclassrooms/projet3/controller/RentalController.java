@@ -42,13 +42,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class RentalController {
 
     private final RentalServiceImpl rentalService;
-    private final DBUserService dbUserService;
     private final ImageUtils imageUtils;
     private final AuthenticationService authenticationService;
 
     public RentalController(RentalServiceImpl rentalService, DBUserService dbUserService, ImageUtilsImpl imageUtils, AuthenticationService authenticationService) {
         this.rentalService = rentalService;
-        this.dbUserService = dbUserService;
         this.imageUtils = imageUtils;
         this.authenticationService = authenticationService;
     }
@@ -155,6 +153,23 @@ public class RentalController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * Handles the creation of a new rental listing.
+     * This endpoint consumes multipart/form-data to allow for picture uploads alongside rental data.
+     *
+     * @param name The name of the rental property, must not be blank.
+     * @param surface The surface area of the rental property in square meters, must be a positive integer.
+     * @param price The rental price, must be a positive number.
+     * @param description A description of the rental property, must not be blank.
+     * @param picture A multipart file containing the picture of the rental property, required.
+     * @return A ResponseEntity containing a success message with HTTP status 201 if the rental is created successfully,
+     *         a not found message with HTTP status 404 if the owner is not found,
+     *         or an error message with HTTP status 500 if an internal server error occurs during the creation process.
+     * The method first retrieves the email of the currently authenticated user, which is assumed to be the owner of the rental.
+     * It then attempts to create a new rental listing with the provided details and the owner's information.
+     * If the owner is not found in the system, it responds with a 404 status code and an appropriate error message.
+     * Any other exceptions that occur during the creation process result in a 500 internal server error response.
+     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create a new rental", operationId = "createRental",
             responses = {
