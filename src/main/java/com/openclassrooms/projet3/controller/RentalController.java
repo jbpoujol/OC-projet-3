@@ -26,8 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
-@Validated
 @RestController
+@Validated
 @RequestMapping("/api/rentals")
 public class RentalController {
 
@@ -99,22 +99,45 @@ public class RentalController {
     }
 
     /**
-     * Retrieves a rental by its ID and returns it as a DTO.
-     * This method handles a GET request to fetch a single rental identified by its unique ID. It utilizes
-     * the rentalService to find the rental entity. If the rental is found, it is converted to a RentalDTO
-     * using the rentalService's convertToDTO method. This conversion abstracts away the entity-to-DTO
-     * transformation logic into the service layer, promoting a clean separation of concerns.
-     * The method follows these steps:
-     * 1. Calls the rentalService's findRentalById method with the provided ID to attempt to find the rental.
-     * 2. If a rental is found, it uses a method reference (rentalService::convertToDTO) to convert the rental entity
-     * to a RentalDTO, ensuring that only the necessary data is exposed to the client.
-     * 3. The RentalDTO is then wrapped in a ResponseEntity and returned with an HTTP status of 200 OK.
-     * 4. If no rental is found for the provided ID, a ResponseEntity with an HTTP status of 404 Not Found is returned.
-     * This approach ensures that the API's response structure and the underlying domain model can evolve
-     * independently, providing flexibility and a stable contract to API consumers.
+     * Retrieves a specific rental by its ID and returns it as a DTO.
+     * <p>This method processes a GET request to fetch a single rental, identified by its unique ID, from the database.
+     * It utilizes the {@code RentalService} to locate the corresponding rental entity. Upon finding the rental,
+     * it is transformed into a {@code RentalDTO}, which is then returned to the client. This method ensures that
+     * the data transfer object contains only the necessary information that should be exposed to the client,
+     * maintaining data privacy and minimizing the payload size.</p>
+     *
+     * <p><strong>Method Workflow:</strong></p>
+     * <ol>
+     *     <li>Validate the provided ID to ensure it meets the minimum value requirement.</li>
+     *     <li>Invoke {@code RentalService.findRentalDTOById(id)} to attempt to find the rental.</li>
+     *     <li>If a rental is found, return it as {@code RentalDTO} with a 200 OK status.</li>
+     *     <li>If no rental is found, or if the provided ID is invalid, appropriate error responses are returned.</li>
+     * </ol>
+     *
+     * <p><strong>Exception Handling:</strong></p>
+     * <ul>
+     *     <li>If the ID does not meet the validation criteria (e.g., a non-positive number), a
+     *     {@code ConstraintViolationException} is thrown, resulting in a 400 Bad Request response with a
+     *     validation error message.</li>
+     *     <li>If no rental matches the provided ID, a {@code CustomNotFoundException} is thrown, leading to
+     *     a 404 Not Found response.</li>
+     * </ul>
+     *
+     * <p><strong>API Responses:</strong></p>
+     * <ul>
+     *     <li><em>200 OK:</em> Returns a {@code RentalDTO} containing the rental details.</li>
+     *     <li><em>400 Bad Request:</em> Occurs when request parameters do not meet validation requirements.
+     *     Example error message:
+     *     <pre>{
+     *         "error": "Validation error",
+     *         "details": ["ID must be greater than 0"]
+     *     }</pre></li>
+     *     <li><em>404 Not Found:</em> Occurs when no rental is found for the provided ID.
+     *     The response body is typically empty.</li>
+     * </ul>
      *
      * @param id The ID of the rental to retrieve.
-     * @return A ResponseEntity containing the RentalDTO if the rental is found, or a 404 Not Found status if not.
+     * @return A {@link ResponseEntity} containing the {@link RentalDTO} if the rental is found, or an error response otherwise.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get a rental by its ID",
@@ -134,13 +157,21 @@ public class RentalController {
                                                 "created_at": "2023-01-15",
                                                 "updated_at": "2023-02-01"
                                             }
-                                            """)))
+                                            """))),
+                    @ApiResponse(responseCode = "400", description = "Validation error on request parameters",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                            {
+                                                "error": "Validation error",
+                                                "details": ["ID must be greater than 0"]
+                                            }
+                                            """))),
+                    @ApiResponse(responseCode = "404", description = "Rental not found for the provided ID",
+                            content = @Content)
             })
-    public ResponseEntity<?> getRentalById(@PathVariable Long id) {
-        return rentalService.findRentalById(id)
-                .map(rentalService::convertToDTO) // Utilisez la méthode de référence ici
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<?> getRentalById(@PathVariable @Min(1) Long id) {
+        RentalDTO rentalDTO = rentalService.findRentalDTOById(id);
+        return ResponseEntity.ok(rentalDTO);
     }
 
     /**
@@ -298,6 +329,5 @@ public class RentalController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error updating rental: " + e.getMessage()));
         }
     }
-
 
 }

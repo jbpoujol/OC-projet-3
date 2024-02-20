@@ -16,6 +16,8 @@ public interface RentalService {
 
     Optional<Rental> findRentalById(Long id);
 
+    RentalDTO findRentalDTOById(Long id);
+
     Rental createRental(String name, int surface, double price, String description, MultipartFile picture, String ownerEmail) throws Exception;
 
     Rental updateRental(Long id, Rental rentalDetails);

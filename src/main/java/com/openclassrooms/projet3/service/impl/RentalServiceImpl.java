@@ -53,6 +53,12 @@ public class RentalServiceImpl implements RentalService {
         return rentalRepository.findById(id);
     }
 
+    public RentalDTO findRentalDTOById(Long id) {
+        Rental rental = rentalRepository.findById(id)
+                .orElseThrow(() -> new CustomNotFoundException("Rental not found with id: " + id));
+        return convertToDTO(rental);
+    }
+
     public Rental createRental(String name, int surface, double price, String description, MultipartFile picture, String ownerEmail) throws Exception {
         Optional<DBUser> ownerOptional = dbUserService.find(ownerEmail);
         if (ownerOptional.isEmpty()) {
