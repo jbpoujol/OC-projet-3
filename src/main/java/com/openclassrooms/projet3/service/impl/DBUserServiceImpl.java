@@ -1,10 +1,10 @@
 package com.openclassrooms.projet3.service.impl;
 
+import com.openclassrooms.projet3.dtos.UserDTO;
+import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.DBUser;
 import com.openclassrooms.projet3.repository.DBUserRepository;
 import com.openclassrooms.projet3.service.DBUserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -13,12 +13,9 @@ import java.util.Optional;
 public class DBUserServiceImpl implements DBUserService {
 
     private final DBUserRepository dbUserRepository;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    @Autowired
-    public DBUserServiceImpl(DBUserRepository dbUserRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+    public DBUserServiceImpl(DBUserRepository dbUserRepository) {
         this.dbUserRepository = dbUserRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @Override
@@ -29,5 +26,17 @@ public class DBUserServiceImpl implements DBUserService {
     @Override
     public Optional<DBUser> findUserById(Long id) {
         return dbUserRepository.findById(id);
+    }
+
+    @Override
+    public UserDTO findUserDTOById(Long id) {
+        return dbUserRepository.findById(id)
+                .map(user -> new UserDTO(
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getCreatedAt(),
+                        user.getUpdatedAt()))
+                .orElseThrow(() -> new CustomNotFoundException("User not found"));
     }
 }

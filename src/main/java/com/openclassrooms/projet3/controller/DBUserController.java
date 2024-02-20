@@ -1,17 +1,21 @@
 package com.openclassrooms.projet3.controller;
 
 import com.openclassrooms.projet3.dtos.UserDTO;
+import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.service.DBUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
@@ -23,27 +27,19 @@ public class DBUserController {
     }
 
     /**
-     * Retrieves detailed information about a specific user by their unique identifier (ID).
+     * Retrieves the details of a user identified by their unique ID.
      * <p>
-     * This method fetches a user based on the provided ID and maps the retrieved entity to a {@link UserDTO}
-     * which includes user's ID, name, email, and timestamps for account creation and last update. It serves
-     * as a straightforward way to access individual user information for client-side applications.
+     * This endpoint fetches the user's information from the database based on the provided user ID. If found,
+     * it returns the user details including ID, name, email, and timestamps for account creation and last update.
+     * The data is returned as a {@link UserDTO} object. This method serves as a direct way to access a user's
+     * information by their unique identifier.
      * <p>
-     * <strong>Path Variable:</strong> {@code id} - The unique identifier of the user to retrieve.
+     * Swagger/OpenAPI annotations ({@code @Operation} and {@code @ApiResponse}) provide additional documentation
+     * for the API, including the expected HTTP response codes and example response bodies.
      *
-     * <strong>Successful Response:</strong>
-     * <ul>
-     *     <li><b>200 OK:</b> Returns a {@link UserDTO} containing the user's details.</li>
-     * </ul>
-     *
-     * <strong>Error Responses:</strong>
-     * <ul>
-     *     <li><b>404 Not Found:</b> No user could be found for the provided ID.</li>
-     * </ul>
-     *
-     * @param id The ID of the user to retrieve.
-     * @return A {@link ResponseEntity} containing the {@link UserDTO} of the requested user if found,
-     * or a 404 Not Found status if the user does not exist.
+     * @param id The unique identifier of the user to retrieve.
+     * @return A {@link ResponseEntity} containing the {@link UserDTO} if the user is found, or a 404 Not Found
+     * status if the user does not exist in the database.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get user by ID",
@@ -68,15 +64,12 @@ public class DBUserController {
                                             }
                                             """)))
             })
-    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
-        return dbUserService.findUserById(id)
-                .map(user -> new UserDTO(
-                        user.getId(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getCreatedAt(),
-                        user.getUpdatedAt()))
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            UserDTO userDTO = dbUserService.findUserDTOById(id);
+            return ResponseEntity.ok(userDTO);
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
     }
 }
