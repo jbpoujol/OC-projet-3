@@ -14,7 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,18 +79,30 @@ public class RentalServiceImpl implements RentalService {
         return rentalRepository.save(rental);
     }
 
-    public Rental updateRental(Long id, Rental rentalDetails) {
+    public Rental updateRental(Long id, String name, int surface, double price, String description, MultipartFile picture, String ownerEmail) throws CustomNotFoundException, IOException {
         Rental rental = rentalRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Rental not found for this id :: " + id));
+                .orElseThrow(() -> new CustomNotFoundException("Rental not found for this id: " + id));
 
-        rental.setName(rentalDetails.getName());
-        rental.setSurface(rentalDetails.getSurface());
-        rental.setPrice(rentalDetails.getPrice());
-        rental.setPicture(rentalDetails.getPicture());
-        rental.setDescription(rentalDetails.getDescription());
-        rental.setUpdatedAt(LocalDate.now());
+        // check if the user is the owner of the rental
+        DBUser owner = dbUserService.find(ownerEmail)
+                .orElseThrow(() -> new CustomNotFoundException("Owner not found"));
+        if (!rental.getOwner().equals(owner)) {
+            throw new CustomNotFoundException("User is not the owner of the rental");
+        }
+
+        if (picture != null && !picture.isEmpty()) {
+            String pictureUrl = imageUtils.storePicture(picture);
+            rental.setPicture(pictureUrl);
+        }
+
+        rental.setName(name);
+        rental.setSurface(surface);
+        rental.setPrice(price);
+        rental.setDescription(description);
+
         return rentalRepository.save(rental);
     }
+
 
     public void deleteRental(Long id) {
         rentalRepository.deleteById(id);

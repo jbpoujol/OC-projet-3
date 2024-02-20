@@ -235,34 +235,25 @@ public class RentalController {
 
 
     /**
-     * Updates an existing rental property by its ID with validated input data.
-     * This method handles a PUT request to update a rental's details including its name, surface area, price,
-     * description, and optionally, a new picture. The method validates the input data to ensure it meets specified
-     * constraints, such as non-null values for certain fields and positive values for numeric fields. If the validation
-     * fails, a 400 Bad Request response is automatically returned with validation error messages.
-     * Steps involved in the process:
-     * 1. Validates the incoming request parameters against the defined constraints.
-     * 2. Retrieves the existing rental entity by its ID. If not found, throws an exception.
-     * 3. Updates the rental entity's properties with the provided and validated values.
-     * 4. If a new picture file is provided and is not empty, it replaces the existing picture. The file is stored
-     * on the disk, and its storage path or URL is saved in the rental entity.
-     * 5. Persists the updated rental entity to the database.
-     * 6. Returns a success response if the rental is updated successfully.
-     * Input parameters are validated for:
-     * - Name and description must not be blank.
-     * - Surface must be a non-null value greater than 0.
-     * - Price must be a non-null positive value.
-     * If a new picture is uploaded, it is processed and stored, and its URL is updated in the rental entity.
+     * Updates an existing rental with the provided details.
+     * <p>
+     * This endpoint allows for updating the details of an existing rental identified by its ID. The operation
+     * requires providing the rental's new name, surface area, price, description, and an optional picture.
+     * It enforces several constraints to ensure valid data is submitted, including non-blank name and description,
+     * a surface area and price that must be positive, and a valid rental ID.
+     * <p>
+     * The update process involves authenticating the user to verify ownership of the rental before proceeding
+     * with the update. If the user is not the owner, a 403 Forbidden response is returned. If the rental
+     * is not found, a 404 Not Found response is generated. Successful updates return a 200 OK with a message
+     * indicating the success. Any server-side errors during the process result in a 500 Internal Server Error response.
      *
-     * @param id          The ID of the rental to update.
-     * @param name        The new name of the rental, must not be blank.
-     * @param surface     The new surface area of the rental, must be a positive integer.
-     * @param price       The new price of the rental, must be a positive value.
-     * @param description The new description of the rental, must not be blank.
-     * @param picture     (Optional) A new picture file for the rental. If provided, it replaces the existing picture.
-     * @return A ResponseEntity with a success message and a 200 OK status if successful,
-     * or an error message with a 400 Bad Request status if validation fails,
-     * or a 500 Internal Server Error status if an exception occurs during the update process.
+     * @param id          The ID of the rental to update, must be greater than 0.
+     * @param name        The new name for the rental, cannot be blank.
+     * @param surface     The new surface area for the rental, must be a positive integer.
+     * @param price       The new price for the rental, must be a positive value.
+     * @param description The new description for the rental, cannot be blank.
+     * @param picture     An optional new picture file for the rental.
+     * @return A ResponseEntity with a success message, or an error message.
      */
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Update an existing rental",
@@ -271,7 +262,7 @@ public class RentalController {
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
                                             {
-                                                "message": "Rental updated!"
+                                                "message": "Rental updated successfully!"
                                             }
                                             """))),
                     @ApiResponse(responseCode = "403", description = "User is not the owner of the rental",
@@ -296,37 +287,21 @@ public class RentalController {
                                             }
                                             """)))
             })
-    public ResponseEntity<?> updateRental(@PathVariable Long id,
+    public ResponseEntity<?> updateRental(@PathVariable @Min(1) Long id,
                                           @RequestParam @NotBlank(message = "Name cannot be empty") String name,
-                                          @RequestParam @NotNull(message = "Surface cannot be null")
-                                          @Min(value = 1, message = "Surface must be greater than 0") int surface,
-                                          @RequestParam @NotNull(message = "Price cannot be null")
-                                          @Positive(message = "Price must be positive") double price,
+                                          @RequestParam @NotNull(message = "Surface cannot be null") @Min(value = 1, message = "Surface must be greater than 0") int surface,
+                                          @RequestParam @NotNull(message = "Price cannot be null") @Positive(message = "Price must be positive") double price,
                                           @RequestParam @NotBlank(message = "Description cannot be empty") String description,
                                           @RequestParam(value = "picture", required = false) MultipartFile picture) {
-
-        // TODO : Implement the updateRental method
         try {
-            Rental rental = rentalService.findRentalById(id).orElseThrow(() -> new Exception("Rental not found"));
+            String ownerEmail = authenticationService.getAuthenticatedUserEmail();
+            Rental updatedRental = rentalService.updateRental(id, name, surface, price, description, picture, ownerEmail);
 
-            rental.setName(name);
-            rental.setSurface(surface);
-            rental.setPrice(price);
-            rental.setDescription(description);
-
-            if (picture != null && !picture.isEmpty()) {
-                String pictureUrl = imageUtils.storePicture(picture);
-                rental.setPicture(pictureUrl);
-            }
-
-            // Checking if the user is the owner of the rental before updating it
-            if (!rentalService.isUserOwnerOfRental(id)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "User is not the owner of the rental"));
-            }
-
-            return ResponseEntity.ok().body(Map.of("message", "Rental updated!"));
+            return ResponseEntity.ok().body(Map.of("message", "Rental updated successfully!"));
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error updating rental: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error updating rental: " + e.getMessage()));
         }
     }
 
