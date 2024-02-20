@@ -1,10 +1,10 @@
 package com.openclassrooms.projet3.service.impl;
 
-import java.time.LocalDate;
-import java.util.Optional;
-
+import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.DBUser;
+import com.openclassrooms.projet3.model.Rental;
+import com.openclassrooms.projet3.repository.RentalRepository;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.RentalService;
 import com.openclassrooms.projet3.utils.ImageUtils;
@@ -12,11 +12,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
-import com.openclassrooms.projet3.dtos.RentalDTO;
-import com.openclassrooms.projet3.model.Rental;
-import com.openclassrooms.projet3.repository.RentalRepository;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 public class RentalServiceImpl implements RentalService {
@@ -32,6 +36,17 @@ public class RentalServiceImpl implements RentalService {
 
     public Iterable<Rental> findAllRentals() {
         return rentalRepository.findAll();
+    }
+
+    public Map<String, Object> getRentalsWithDTOs() {
+        Iterable<Rental> rentalsIterable = findAllRentals();
+        List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("rentals", rentalsList);
+        return response;
     }
 
     public Optional<Rental> findRentalById(Long id) {
@@ -75,12 +90,6 @@ public class RentalServiceImpl implements RentalService {
         rentalRepository.deleteById(id);
     }
 
-    public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) {
-            super(message);
-        }
-    }
-
     public boolean isUserOwnerOfRental(Long rentalId) {
         Rental rental = findRentalById(rentalId).orElseThrow(() -> new RuntimeException("Rental not found"));
         String authenticatedUsername = getAuthenticatedUsername();
@@ -96,7 +105,6 @@ public class RentalServiceImpl implements RentalService {
         }
     }
 
-
     public RentalDTO convertToDTO(Rental rental) {
         RentalDTO dto = new RentalDTO();
         dto.setId(rental.getId());
@@ -109,6 +117,12 @@ public class RentalServiceImpl implements RentalService {
         dto.setUpdated_at(rental.getUpdatedAt().toString());
         dto.setOwner_id(rental.getOwner().getId());
         return dto;
+    }
+
+    public static class ResourceNotFoundException extends RuntimeException {
+        public ResourceNotFoundException(String message) {
+            super(message);
+        }
     }
 
 }

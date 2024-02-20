@@ -1,14 +1,11 @@
 package com.openclassrooms.projet3.controller;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
+import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.excepton.CustomNotFoundException;
+import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.AuthenticationService;
+import com.openclassrooms.projet3.service.DBUserService;
+import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
 import com.openclassrooms.projet3.utils.ImageUtils;
 import com.openclassrooms.projet3.utils.impl.ImageUtilsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,16 +22,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import com.openclassrooms.projet3.dtos.RentalDTO;
-import com.openclassrooms.projet3.model.DBUser;
-import com.openclassrooms.projet3.model.Rental;
-import com.openclassrooms.projet3.service.DBUserService;
-import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
-
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @Validated
 @RestController
@@ -52,16 +42,15 @@ public class RentalController {
     }
 
     /**
-     * Handles the GET request to retrieve all rentals.
-     * This method fetches all rental entities using the rental service, converts each entity
-     * to its Data Transfer Object (DTO) representation, and then collects them into a list.
-     * The list of RentalDTO objects is then encapsulated within a Map under the key 'rentals',
-     * allowing the response to be easily extended in the future with additional data if necessary.
-     * The use of StreamSupport along with the spliterator of the Iterable allows for
-     * efficient streaming and transformation of the rental entities to DTOs.
-     *
-     * @return A Map containing the list of RentalDTOs under the key 'rentals',
-     *         which is then serialized into a JSON object response.
+     * Retrieves a list of all rental properties available in the system.
+     * <p>
+     * This endpoint fetches a comprehensive list of rental properties, including details such as name, surface area, price, description, and picture URL for each rental, intended for client display.
+     * <p>
+     * Responses:
+     * - 200 OK: Successfully retrieved the list of rentals, returned as an array of rental objects within a "rentals" key in the response body.
+     * - 500 Internal Server Error: Indicates an unexpected error occurred during the process. This could be due to database issues, file storage problems, or other internal server errors. The response includes an error message providing more details about the specific issue encountered.
+     * <p>
+     * The method leverages the {@code RentalService} to fetch and transform rental data into DTOs before returning to the caller. It demonstrates separation of concerns by encapsulating the business logic for fetching rental information, leaving the controller responsible for request handling and response formatting. Global exception handling is in place to catch and respond to any unhandled exceptions that may occur.
      */
     @GetMapping
     @Operation(summary = "Get all rentals",
@@ -69,43 +58,44 @@ public class RentalController {
                     @ApiResponse(responseCode = "200", description = "Successful retrieval of rental list",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "rentals": [
-                                       {
-                                           "id": 1,
-                                           "name": "Charming Cottage",
-                                           "surface": 120,
-                                           "price": 1500.00,
-                                           "picture": "http://example.com/images/cottage.jpg",
-                                           "description": "A charming cottage in the countryside, perfect for a weekend getaway.",
-                                           "owner_id": 42,
-                                           "created_at": "2023-01-15T14:30:00Z",
-                                           "updated_at": "2023-02-01T10:15:00Z"
-                                       },
-                                       {
-                                           "id": 2,
-                                           "name": "Urban Loft",
-                                           "surface": 85,
-                                           "price": 2100.00,
-                                           "picture": "http://example.com/images/loft.jpg",
-                                           "description": "Stylish loft in the heart of the city, close to amenities and nightlife.",
-                                           "owner_id": 85,
-                                           "created_at": "2023-01-20T11:00:00Z",
-                                           "updated_at": "2023-01-28T09:20:00Z"
-                                       }
-                                   ]
-                               }
-                               """)))
+                                            {
+                                                "rentals": [
+                                                    {
+                                                        "id": 1,
+                                                        "name": "Charming Cottage",
+                                                        "surface": 120,
+                                                        "price": 1500.00,
+                                                        "picture": "http://example.com/images/cottage.jpg",
+                                                        "description": "A charming cottage in the countryside, perfect for a weekend getaway.",
+                                                        "owner_id": 42,
+                                                        "created_at": "2023-01-15T14:30:00Z",
+                                                        "updated_at": "2023-02-01T10:15:00Z"
+                                                    },
+                                                    {
+                                                        "id": 2,
+                                                        "name": "Urban Loft",
+                                                        "surface": 85,
+                                                        "price": 2100.00,
+                                                        "picture": "http://example.com/images/loft.jpg",
+                                                        "description": "Stylish loft in the heart of the city, close to amenities and nightlife.",
+                                                        "owner_id": 85,
+                                                        "created_at": "2023-01-20T11:00:00Z",
+                                                        "updated_at": "2023-01-28T09:20:00Z"
+                                                    }
+                                                ]
+                                            }
+                                            """))),
+                    @ApiResponse(responseCode = "500", description = "Internal server error",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                                            {
+                                                "error": "An unexpected error occurred",
+                                                "details": "Specific error message here"
+                                            }
+                                            """)))
             })
     public Map<String, Object> getRentals() {
-        Iterable<Rental> rentalsIterable = rentalService.findAllRentals();
-        List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
-                .map(rentalService::convertToDTO)
-                .collect(Collectors.toList());
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("rentals", rentalsList);
-        return response;
+        return rentalService.getRentalsWithDTOs();
     }
 
     /**
@@ -117,7 +107,7 @@ public class RentalController {
      * The method follows these steps:
      * 1. Calls the rentalService's findRentalById method with the provided ID to attempt to find the rental.
      * 2. If a rental is found, it uses a method reference (rentalService::convertToDTO) to convert the rental entity
-     *    to a RentalDTO, ensuring that only the necessary data is exposed to the client.
+     * to a RentalDTO, ensuring that only the necessary data is exposed to the client.
      * 3. The RentalDTO is then wrapped in a ResponseEntity and returned with an HTTP status of 200 OK.
      * 4. If no rental is found for the provided ID, a ResponseEntity with an HTTP status of 404 Not Found is returned.
      * This approach ensures that the API's response structure and the underlying domain model can evolve
@@ -133,18 +123,18 @@ public class RentalController {
                             content = @Content(mediaType = "application/json",
                                     schema = @Schema(implementation = RentalDTO.class),
                                     examples = @ExampleObject(value = """
-                           {
-                               "id": 1,
-                               "name": "Charming Cottage",
-                               "surface": 120,
-                               "price": 1500.00,
-                               "picture": "http://example.com/images/cottage.jpg",
-                               "description": "A charming cottage in the countryside, perfect for a weekend getaway.",
-                               "owner_id": 42,
-                               "created_at": "2023-01-15",
-                               "updated_at": "2023-02-01"
-                           }
-                           """)))
+                                            {
+                                                "id": 1,
+                                                "name": "Charming Cottage",
+                                                "surface": 120,
+                                                "price": 1500.00,
+                                                "picture": "http://example.com/images/cottage.jpg",
+                                                "description": "A charming cottage in the countryside, perfect for a weekend getaway.",
+                                                "owner_id": 42,
+                                                "created_at": "2023-01-15",
+                                                "updated_at": "2023-02-01"
+                                            }
+                                            """)))
             })
     public ResponseEntity<?> getRentalById(@PathVariable Long id) {
         return rentalService.findRentalById(id)
@@ -157,14 +147,14 @@ public class RentalController {
      * Handles the creation of a new rental listing.
      * This endpoint consumes multipart/form-data to allow for picture uploads alongside rental data.
      *
-     * @param name The name of the rental property, must not be blank.
-     * @param surface The surface area of the rental property in square meters, must be a positive integer.
-     * @param price The rental price, must be a positive number.
+     * @param name        The name of the rental property, must not be blank.
+     * @param surface     The surface area of the rental property in square meters, must be a positive integer.
+     * @param price       The rental price, must be a positive number.
      * @param description A description of the rental property, must not be blank.
-     * @param picture A multipart file containing the picture of the rental property, required.
+     * @param picture     A multipart file containing the picture of the rental property, required.
      * @return A ResponseEntity containing a success message with HTTP status 201 if the rental is created successfully,
-     *         a not found message with HTTP status 404 if the owner is not found,
-     *         or an error message with HTTP status 500 if an internal server error occurs during the creation process.
+     * a not found message with HTTP status 404 if the owner is not found,
+     * or an error message with HTTP status 500 if an internal server error occurs during the creation process.
      * The method first retrieves the email of the currently authenticated user, which is assumed to be the owner of the rental.
      * It then attempts to create a new rental listing with the provided details and the owner's information.
      * If the owner is not found in the system, it responds with a 404 status code and an appropriate error message.
@@ -176,24 +166,24 @@ public class RentalController {
                     @ApiResponse(responseCode = "201", description = "Rental created successfully",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "message": "Rental created successfully!"
-                               }
-                               """))),
+                                            {
+                                                "message": "Rental created successfully!"
+                                            }
+                                            """))),
                     @ApiResponse(responseCode = "404", description = "Owner not found",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "error": "Owner not found"
-                               }
-                               """))),
+                                            {
+                                                "error": "Owner not found"
+                                            }
+                                            """))),
                     @ApiResponse(responseCode = "500", description = "Internal server error",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                               {
-                                   "error": "Could not create the rental"
-                               }
-                               """)))
+                                            {
+                                                "error": "Could not create the rental"
+                                            }
+                                            """)))
             })
     public ResponseEntity<?> createRental(@RequestParam @NotBlank(message = "Name cannot be blank") String name,
                                           @RequestParam @NotNull(message = "Surface cannot be null") @Positive(message = "Surface must be positive") int surface,
@@ -224,7 +214,7 @@ public class RentalController {
      * 2. Retrieves the existing rental entity by its ID. If not found, throws an exception.
      * 3. Updates the rental entity's properties with the provided and validated values.
      * 4. If a new picture file is provided and is not empty, it replaces the existing picture. The file is stored
-     *    on the disk, and its storage path or URL is saved in the rental entity.
+     * on the disk, and its storage path or URL is saved in the rental entity.
      * 5. Persists the updated rental entity to the database.
      * 6. Returns a success response if the rental is updated successfully.
      * Input parameters are validated for:
@@ -233,15 +223,15 @@ public class RentalController {
      * - Price must be a non-null positive value.
      * If a new picture is uploaded, it is processed and stored, and its URL is updated in the rental entity.
      *
-     * @param id The ID of the rental to update.
-     * @param name The new name of the rental, must not be blank.
-     * @param surface The new surface area of the rental, must be a positive integer.
-     * @param price The new price of the rental, must be a positive value.
+     * @param id          The ID of the rental to update.
+     * @param name        The new name of the rental, must not be blank.
+     * @param surface     The new surface area of the rental, must be a positive integer.
+     * @param price       The new price of the rental, must be a positive value.
      * @param description The new description of the rental, must not be blank.
-     * @param picture (Optional) A new picture file for the rental. If provided, it replaces the existing picture.
+     * @param picture     (Optional) A new picture file for the rental. If provided, it replaces the existing picture.
      * @return A ResponseEntity with a success message and a 200 OK status if successful,
-     *         or an error message with a 400 Bad Request status if validation fails,
-     *         or a 500 Internal Server Error status if an exception occurs during the update process.
+     * or an error message with a 400 Bad Request status if validation fails,
+     * or a 500 Internal Server Error status if an exception occurs during the update process.
      */
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Update an existing rental",
@@ -249,31 +239,31 @@ public class RentalController {
                     @ApiResponse(responseCode = "200", description = "Rental successfully updated",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                                   {
-                                       "message": "Rental updated!"
-                                   }
-                                   """))),
+                                            {
+                                                "message": "Rental updated!"
+                                            }
+                                            """))),
                     @ApiResponse(responseCode = "403", description = "User is not the owner of the rental",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                                   {
-                                       "message": "User is not the owner of the rental"
-                                   }
-                                   """))),
+                                            {
+                                                "message": "User is not the owner of the rental"
+                                            }
+                                            """))),
                     @ApiResponse(responseCode = "404", description = "Rental not found",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                                   {
-                                       "message": "Rental not found"
-                                   }
-                                   """))),
+                                            {
+                                                "message": "Rental not found"
+                                            }
+                                            """))),
                     @ApiResponse(responseCode = "500", description = "Error updating rental",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
-                                   {
-                                       "message": "Error updating rental: [Error details here]"
-                                   }
-                                   """)))
+                                            {
+                                                "message": "Error updating rental: [Error details here]"
+                                            }
+                                            """)))
             })
     public ResponseEntity<?> updateRental(@PathVariable Long id,
                                           @RequestParam @NotBlank(message = "Name cannot be empty") String name,
