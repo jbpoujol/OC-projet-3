@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,8 +21,11 @@ import java.util.Map;
 @RequestMapping("/api/messages")
 public class MessageController {
 
-    @Autowired
-    private MessageService messageService;
+    private final MessageService messageService;
+
+    public MessageController(MessageService messageService) {
+        this.messageService = messageService;
+    }
 
     /**
      * Creates a new message associated with a specific rental and user.
@@ -72,16 +74,14 @@ public class MessageController {
                                             }
                                             """)))
             })
-    public ResponseEntity<?> createMessage(@RequestBody @Valid MessageDTO messageDTO) {
+    public ResponseEntity<Map<String, String>> createMessage(@RequestBody @Valid MessageDTO messageDTO) {
         try {
             messageService.createAndSaveMessage(messageDTO);
-            return ResponseEntity.ok(Map.of("message", "Message sent with success"));
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Message sent successfully"));
         } catch (CustomNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not send the message. Please try again later."));
         }
     }
-
-
 }
