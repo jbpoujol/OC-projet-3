@@ -5,12 +5,11 @@ import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.DBUser;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.repository.RentalRepository;
+import com.openclassrooms.projet3.service.AuthenticationService;
 import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.RentalService;
 import com.openclassrooms.projet3.utils.ImageUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,12 +27,14 @@ public class RentalServiceImpl implements RentalService {
     private final RentalRepository rentalRepository;
     private final ImageUtils imageUtils;
     private final DBUserService dbUserService;
+    private final AuthenticationService authenticationService;
 
     @Autowired
-    public RentalServiceImpl(RentalRepository rentalRepository, ImageUtils imageUtils, DBUserService dbUserService) {
+    public RentalServiceImpl(RentalRepository rentalRepository, ImageUtils imageUtils, DBUserService dbUserService, AuthenticationService authenticationService) {
         this.rentalRepository = rentalRepository;
         this.imageUtils = imageUtils;
         this.dbUserService = dbUserService;
+        this.authenticationService = authenticationService;
     }
 
     @Override
@@ -119,17 +120,8 @@ public class RentalServiceImpl implements RentalService {
     @Override
     public boolean isUserOwnerOfRental(Long rentalId) {
         Rental rental = findRentalById(rentalId).orElseThrow(() -> new RuntimeException("Rental not found"));
-        String authenticatedUsername = getAuthenticatedUsername();
+        String authenticatedUsername = authenticationService.getAuthenticatedUsername();
         return rental.getOwner().getName().equals(authenticatedUsername);
-    }
-
-    public String getAuthenticatedUsername() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserDetails) {
-            return ((UserDetails) principal).getUsername();
-        } else {
-            return principal.toString();
-        }
     }
 
     private RentalDTO convertToDTO(Rental rental) {

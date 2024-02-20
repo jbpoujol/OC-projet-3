@@ -3,6 +3,7 @@ package com.openclassrooms.projet3.service.impl;
 import com.openclassrooms.projet3.service.AuthenticationService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,6 +13,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public String getAuthenticatedUserEmail() {
         Authentication authentication = getAuthentication();
         return (authentication != null) ? authentication.getName() : null;
+    }
+
+    @Override
+    public String getAuthenticatedUsername() {
+        Authentication authentication = getAuthentication();
+        if (authentication != null) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails) {
+                return ((UserDetails) principal).getUsername();
+            }
+            return principal.toString();
+        }
+        return null;
     }
 
     /**
@@ -24,4 +38,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     protected Authentication getAuthentication() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
+
+
 }

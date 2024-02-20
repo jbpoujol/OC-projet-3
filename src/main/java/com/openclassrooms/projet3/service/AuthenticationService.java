@@ -3,18 +3,25 @@ package com.openclassrooms.projet3.service;
 public interface AuthenticationService {
 
     /**
-     * Retrieves the email address of the currently authenticated user.
+     * Retrieves the email of the currently authenticated user.
      * <p>
-     * This method is designed to abstract the process of obtaining the email address
-     * of the user currently authenticated in the security context of the application.
-     * It assumes that the authentication object's principal or name represents the user's
-     * email address.
-     * <p>
-     * It's important to note that the method will return null if there's no authentication
-     * information available in the security context, indicating that the request is not
-     * associated with any authenticated user.
+     * This method is intended to be used in contexts where the user's email address is needed
+     * and the user is expected to be authenticated. If no authentication information is available,
+     * this method returns {@code null}.
      *
-     * @return The email address of the currently authenticated user, or {@code null} if the user is not authenticated.
+     * @return The email of the authenticated user if available, otherwise {@code null}.
      */
     String getAuthenticatedUserEmail();
+
+    /**
+     * Retrieves the username of the currently authenticated user.
+     * <p>
+     * This method obtains the username from the authentication principal. If the principal
+     * is an instance of UserDetails, the username is directly extracted. Otherwise, the principal's
+     * {@code toString()} representation is used as the username. This method returns {@code null}
+     * if no authentication information is available.
+     *
+     * @return The username of the authenticated user if available, otherwise {@code null}.
+     */
+    String getAuthenticatedUsername();
 }
