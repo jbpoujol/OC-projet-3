@@ -22,16 +22,6 @@ public class DBUserServiceImpl implements DBUserService {
     }
 
     @Override
-    public DBUser registerUser(String name, String email, String password) {
-        DBUser newUser = new DBUser();
-        newUser.setName(name);
-        newUser.setEmail(email);
-        newUser.setPassword(bCryptPasswordEncoder.encode(password));
-
-        return dbUserRepository.save(newUser);
-    }
-
-    @Override
     public Optional<DBUser> find(String email) {
         return dbUserRepository.findByEmail(email);
     }

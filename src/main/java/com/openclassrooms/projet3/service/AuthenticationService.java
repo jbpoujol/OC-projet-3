@@ -1,6 +1,18 @@
 package com.openclassrooms.projet3.service;
 
+import com.openclassrooms.projet3.dtos.UserDTO;
+import com.openclassrooms.projet3.model.LoginRequest;
+import com.openclassrooms.projet3.model.RegistrationRequest;
+
+import java.util.Map;
+
 public interface AuthenticationService {
+
+    Map<String, String> registerUserAndGenerateToken(RegistrationRequest registrationRequest);
+
+    Map<String, String> authenticateAndGenerateToken(LoginRequest loginRequest);
+
+    UserDTO getCurrentUserDetails();
 
     /**
      * Retrieves the email of the currently authenticated user.
