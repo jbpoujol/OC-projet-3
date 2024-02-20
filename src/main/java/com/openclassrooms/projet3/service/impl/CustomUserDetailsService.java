@@ -1,9 +1,7 @@
 package com.openclassrooms.projet3.service.impl;
 
-import java.util.Collections;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.openclassrooms.projet3.model.DBUser;
+import com.openclassrooms.projet3.repository.DBUserRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -12,8 +10,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.openclassrooms.projet3.model.DBUser;
-import com.openclassrooms.projet3.repository.DBUserRepository;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Custom service for managing user details.
@@ -22,8 +20,11 @@ import com.openclassrooms.projet3.repository.DBUserRepository;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    @Autowired
-    private DBUserRepository dbUserRepository; // The repository to access user data.
+    private final DBUserRepository dbUserRepository;
+
+    public CustomUserDetailsService(DBUserRepository dbUserRepository) {
+        this.dbUserRepository = dbUserRepository;
+    }
 
     /**
      * Loads a user by their email and constructs a UserDetails for authentication.
