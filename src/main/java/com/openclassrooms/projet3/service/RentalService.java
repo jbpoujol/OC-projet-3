@@ -103,11 +103,4 @@ public interface RentalService {
      */
     boolean isUserOwnerOfRental(Long rentalId);
 
-    private String getAuthenticatedUsername() {
-        return null;
-    }
-
-    private RentalDTO convertToDTO(Rental rental) {
-        return null;
-    }
 }
