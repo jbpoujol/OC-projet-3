@@ -6,7 +6,7 @@ import com.openclassrooms.projet3.model.Rental;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 public interface RentalService {
@@ -19,15 +19,19 @@ public interface RentalService {
     Iterable<Rental> findAllRentals();
 
     /**
-     * Fetches all rentals and converts them into a list of DTOs.
+     * Fetches all rentals available and converts them to a list of {@link RentalDTO}.
      * <p>
-     * This method retrieves all rental entities, converts each to a {@link RentalDTO} to abstract
-     * away entity details from clients, and returns a collection of these DTOs wrapped in a map
-     * for response consistency.
+     * This method retrieves all rental entities from the repository, transforms each into a {@link RentalDTO}
+     * to abstract away the entity details from the client-side representation. This is particularly useful for
+     * API responses where a simplified or different data structure is desired for client consumption.
+     * <p>
+     * The conversion from {@link Rental} entities to {@link RentalDTO} objects ensures that only relevant
+     * information is exposed to the clients, enhancing data privacy and minimizing the payload size for better performance.
      *
-     * @return a map containing a list of {@link RentalDTO}s under the "rentals" key.
+     * @return A list of {@link RentalDTO} representing all available rentals. If no rentals are available,
+     * an empty list is returned.
      */
-    Map<String, Object> getRentalsWithDTOs();
+    List<RentalDTO> getRentalsWithDTOs();
 
     /**
      * Searches for a rental by its unique identifier.

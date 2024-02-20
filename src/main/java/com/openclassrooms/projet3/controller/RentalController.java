@@ -4,6 +4,7 @@ import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.AuthenticationService;
+import com.openclassrooms.projet3.service.RentalService;
 import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,6 +22,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,7 +31,7 @@ import java.util.Map;
 @RequestMapping("/api/rentals")
 public class RentalController {
 
-    private final RentalServiceImpl rentalService;
+    private final RentalService rentalService;
     private final AuthenticationService authenticationService;
 
     public RentalController(RentalServiceImpl rentalService, AuthenticationService authenticationService) {
@@ -37,15 +40,20 @@ public class RentalController {
     }
 
     /**
-     * Retrieves a list of all rental properties available in the system.
+     * Fetches and returns a list of all rental properties available.
      * <p>
-     * This endpoint fetches a comprehensive list of rental properties, including details such as name, surface area, price, description, and picture URL for each rental, intended for client display.
+     * This endpoint provides a comprehensive list of all rental properties, including their names, surface areas,
+     * prices, descriptions, and picture URLs. It's designed to support client-side display needs by offering a detailed
+     * overview of each property available for rent.
      * <p>
-     * Responses:
-     * - 200 OK: Successfully retrieved the list of rentals, returned as an array of rental objects within a "rentals" key in the response body.
-     * - 500 Internal Server Error: Indicates an unexpected error occurred during the process. This could be due to database issues, file storage problems, or other internal server errors. The response includes an error message providing more details about the specific issue encountered.
-     * <p>
-     * The method leverages the {@code RentalService} to fetch and transform rental data into DTOs before returning to the caller. It demonstrates separation of concerns by encapsulating the business logic for fetching rental information, leaving the controller responsible for request handling and response formatting. Global exception handling is in place to catch and respond to any unhandled exceptions that may occur.
+     * The method queries the underlying rental service to retrieve a collection of {@link RentalDTO}s, which are then
+     * returned to the caller wrapped inside a response entity with an HTTP status code of 200 for a successful operation.
+     * In the event of an unexpected server error, a 500 status code is returned along with an error message detailing
+     * the nature of the error.
+     *
+     * @return A {@link ResponseEntity} containing a {@link Map} with a key "rentals" mapped to a list of {@link RentalDTO}s.
+     * The response entity will have an HTTP status code of 200 (OK) on success or 500 (Internal Server Error) if
+     * an unexpected error occurs.
      */
     @GetMapping
     @Operation(summary = "Get all rentals",
@@ -89,50 +97,38 @@ public class RentalController {
                                             }
                                             """)))
             })
-    public Map<String, Object> getRentals() {
-        return rentalService.getRentalsWithDTOs();
+    public ResponseEntity<Map<String, Object>> getRentals() {
+        List<RentalDTO> rentals = rentalService.getRentalsWithDTOs();
+        Map<String, Object> response = new HashMap<>();
+        response.put("rentals", rentals);
+        return ResponseEntity.ok(response);
     }
 
     /**
-     * Retrieves a specific rental by its ID and returns it as a DTO.
-     * <p>This method processes a GET request to fetch a single rental, identified by its unique ID, from the database.
-     * It utilizes the {@code RentalService} to locate the corresponding rental entity. Upon finding the rental,
-     * it is transformed into a {@code RentalDTO}, which is then returned to the client. This method ensures that
-     * the data transfer object contains only the necessary information that should be exposed to the client,
-     * maintaining data privacy and minimizing the payload size.</p>
-     *
-     * <p><strong>Method Workflow:</strong></p>
-     * <ol>
-     *     <li>Validate the provided ID to ensure it meets the minimum value requirement.</li>
-     *     <li>Invoke {@code RentalService.findRentalDTOById(id)} to attempt to find the rental.</li>
-     *     <li>If a rental is found, return it as {@code RentalDTO} with a 200 OK status.</li>
-     *     <li>If no rental is found, or if the provided ID is invalid, appropriate error responses are returned.</li>
-     * </ol>
-     *
-     * <p><strong>Exception Handling:</strong></p>
+     * Retrieves detailed information for a specific rental property identified by its ID.
+     * <p>
+     * This endpoint is designed to fetch detailed information about a single rental property, including its name,
+     * surface area, price, description, and picture URL, based on the provided unique identifier (ID). The information
+     * is returned as a {@link RentalDTO} object, encapsulating the rental details in a format suitable for client-side consumption.
+     * <p>
+     * <strong>Path Variable:</strong>
      * <ul>
-     *     <li>If the ID does not meet the validation criteria (e.g., a non-positive number), a
-     *     {@code ConstraintViolationException} is thrown, resulting in a 400 Bad Request response with a
-     *     validation error message.</li>
-     *     <li>If no rental matches the provided ID, a {@code CustomNotFoundException} is thrown, leading to
-     *     a 404 Not Found response.</li>
+     *     <li>{@code id}: The unique identifier of the rental property to retrieve. Must be greater than 0.</li>
      * </ul>
      *
-     * <p><strong>API Responses:</strong></p>
+     * <strong>Responses:</strong>
      * <ul>
-     *     <li><em>200 OK:</em> Returns a {@code RentalDTO} containing the rental details.</li>
-     *     <li><em>400 Bad Request:</em> Occurs when request parameters do not meet validation requirements.
-     *     Example error message:
-     *     <pre>{
-     *         "error": "Validation error",
-     *         "details": ["ID must be greater than 0"]
-     *     }</pre></li>
-     *     <li><em>404 Not Found:</em> Occurs when no rental is found for the provided ID.
-     *     The response body is typically empty.</li>
+     *     <li><em>200 OK:</em> Successful retrieval of the rental information. The response body contains a {@link RentalDTO}
+     *     object with the rental details.</li>
+     *     <li><em>400 Bad Request:</em> The provided ID does not meet the validation criteria (e.g., a non-positive number).
+     *     The response includes a validation error message.</li>
+     *     <li><em>404 Not Found:</em> No rental property was found for the provided ID. The response body typically does not
+     *     contain any additional information.</li>
      * </ul>
      *
-     * @param id The ID of the rental to retrieve.
-     * @return A {@link ResponseEntity} containing the {@link RentalDTO} if the rental is found, or an error response otherwise.
+     * @param id The ID of the rental property to retrieve, encapsulated as a {@code @PathVariable}. This ID must be a positive number.
+     * @return A {@link ResponseEntity} containing the {@link RentalDTO} of the requested rental property if found, or an appropriate
+     * error response otherwise.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get a rental by its ID",
@@ -164,7 +160,7 @@ public class RentalController {
                     @ApiResponse(responseCode = "404", description = "Rental not found for the provided ID",
                             content = @Content)
             })
-    public ResponseEntity<?> getRentalById(@PathVariable @Min(1) Long id) {
+    public ResponseEntity<RentalDTO> getRentalById(@PathVariable @Min(1) Long id) {
         RentalDTO rentalDTO = rentalService.findRentalDTOById(id);
         return ResponseEntity.ok(rentalDTO);
     }
@@ -211,16 +207,15 @@ public class RentalController {
                                             }
                                             """)))
             })
-    public ResponseEntity<?> createRental(@RequestParam @NotBlank(message = "Name cannot be blank") String name,
-                                          @RequestParam @NotNull(message = "Surface cannot be null") @Positive(message = "Surface must be positive") int surface,
-                                          @RequestParam @NotNull(message = "Price cannot be null") @Positive(message = "Price must be positive") double price,
-                                          @RequestParam @NotBlank(message = "Description cannot be blank") String description,
-                                          @RequestParam(name = "picture", required = true) MultipartFile picture) {
+    public ResponseEntity<?> createRental(@RequestParam @NotBlank String name,
+                                          @RequestParam @NotNull @Positive int surface,
+                                          @RequestParam @NotNull @Positive double price,
+                                          @RequestParam @NotBlank String description,
+                                          @RequestParam("picture") MultipartFile picture) {
         try {
             String email = authenticationService.getAuthenticatedUserEmail();
             Rental rental = rentalService.createRental(name, surface, price, description, picture, email);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Rental created!"));
+            return new ResponseEntity<>(Map.of("message", "Rental created successfully!", "rentalId", rental.getId()), HttpStatus.CREATED);
         } catch (CustomNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -283,16 +278,15 @@ public class RentalController {
                                             """)))
             })
     public ResponseEntity<?> updateRental(@PathVariable @Min(1) Long id,
-                                          @RequestParam @NotBlank(message = "Name cannot be empty") String name,
-                                          @RequestParam @NotNull(message = "Surface cannot be null") @Min(value = 1, message = "Surface must be greater than 0") int surface,
-                                          @RequestParam @NotNull(message = "Price cannot be null") @Positive(message = "Price must be positive") double price,
-                                          @RequestParam @NotBlank(message = "Description cannot be empty") String description,
+                                          @RequestParam @NotBlank String name,
+                                          @RequestParam @NotNull @Positive int surface,
+                                          @RequestParam @NotNull @Positive double price,
+                                          @RequestParam @NotBlank String description,
                                           @RequestParam(value = "picture", required = false) MultipartFile picture) {
         try {
             String ownerEmail = authenticationService.getAuthenticatedUserEmail();
             Rental updatedRental = rentalService.updateRental(id, name, surface, price, description, picture, ownerEmail);
-
-            return ResponseEntity.ok().body(Map.of("message", "Rental updated successfully!"));
+            return ResponseEntity.ok(Map.of("message", "Rental updated successfully!"));
         } catch (CustomNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
