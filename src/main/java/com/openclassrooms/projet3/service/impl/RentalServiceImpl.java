@@ -55,7 +55,7 @@ public class RentalServiceImpl implements RentalService {
         rental.setPicture(pictureUrl);
         rental.setOwner(owner);
 
-        return rentalRepository.save(rental); // Suppose rentalRepository est votre JPA repository pour Rental
+        return rentalRepository.save(rental);
     }
 
     public Rental updateRental(Long id, Rental rentalDetails) {
