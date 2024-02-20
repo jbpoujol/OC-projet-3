@@ -1,9 +1,5 @@
 package com.openclassrooms.projet3.controller;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +7,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.openclassrooms.projet3.excepton.CustomNotFoundException;
+import com.openclassrooms.projet3.service.AuthenticationService;
+import com.openclassrooms.projet3.utils.ImageUtils;
+import com.openclassrooms.projet3.utils.impl.ImageUtilsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -35,7 +35,6 @@ import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Validated
 @RestController
@@ -44,10 +43,14 @@ public class RentalController {
 
     private final RentalServiceImpl rentalService;
     private final DBUserService dbUserService;
+    private final ImageUtils imageUtils;
+    private final AuthenticationService authenticationService;
 
-    public RentalController(RentalServiceImpl rentalService, DBUserService dbUserService) {
+    public RentalController(RentalServiceImpl rentalService, DBUserService dbUserService, ImageUtilsImpl imageUtils, AuthenticationService authenticationService) {
         this.rentalService = rentalService;
         this.dbUserService = dbUserService;
+        this.imageUtils = imageUtils;
+        this.authenticationService = authenticationService;
     }
 
     /**
@@ -152,30 +155,6 @@ public class RentalController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /**
-     * Creates a new rental property with validated input data.
-     * This method handles a POST request to create a new rental. It validates the input data to ensure
-     * it adheres to specified constraints, such as non-blank values for name and description, and positive
-     * values for surface area and price. If the validation fails, a 400 Bad Request response is automatically
-     * returned with validation error messages. The picture file is not validated by annotations but is checked
-     * for emptiness before processing.
-     * The process involves:
-     * 1. Validating the incoming request parameters against the defined constraints.
-     * 2. Extracting the authenticated user's email from the security context to set as the rental's owner.
-     * 3. Storing the uploaded picture on the disk and generating its URL for the rental entity.
-     * 4. Creating and saving the new Rental entity with the provided and validated values.
-     * 5. Returning a success response if the rental is created successfully.
-     *
-     * @param name The name of the rental, must not be blank.
-     * @param surface The surface area of the rental, must be a positive integer.
-     * @param price The price of the rental, must be a positive value.
-     * @param description The description of the rental, must not be blank.
-     * @param picture The picture file for the rental, must not be empty.
-     * @return A ResponseEntity with a success message and a 201 Created status if successful,
-     *         or an error message with a 400 Bad Request status if validation fails,
-     *         or a 500 Internal Server Error status if an exception occurs during the creation process.
-     */
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create a new rental", operationId = "createRental",
             responses = {
@@ -201,34 +180,14 @@ public class RentalController {
                                           @RequestParam @NotBlank(message = "Description cannot be blank") String description,
                                           @RequestParam(name = "picture", required = true) MultipartFile picture) {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Optional<DBUser> ownerOptional = dbUserService.find(email);
-            if (ownerOptional.isEmpty()) {
-                // Gestion du cas où l'utilisateur n'est pas trouvé
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Owner not found"));
-            }
-            DBUser owner = ownerOptional.get();
+            String email = authenticationService.getAuthenticatedUserEmail();
+            Rental rental = rentalService.createRental(name, surface, price, description, picture, email);
 
-            String pictureUrl = storePicture(picture);
-
-            Rental rental = new Rental();
-            rental.setName(name);
-            rental.setSurface(surface);
-            rental.setPrice(price);
-            rental.setDescription(description);
-            rental.setPicture(pictureUrl);
-            rental.setOwner(owner);
-
-            rentalService.saveRental(rental);
-
-            // Just return the message with HTTP status 201 Created
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Rental created!"));
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            // Handle exception (e.g., IOException from file storage or any other exception)
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                    "error", "Could not create the rental"
-            ));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not create the rental"));
         }
     }
 
@@ -303,6 +262,8 @@ public class RentalController {
                                           @Positive(message = "Price must be positive") double price,
                                           @RequestParam @NotBlank(message = "Description cannot be empty") String description,
                                           @RequestParam(value = "picture", required = false) MultipartFile picture) {
+
+        // TODO : Implement the updateRental method
         try {
             Rental rental = rentalService.findRentalById(id).orElseThrow(() -> new Exception("Rental not found"));
 
@@ -312,7 +273,7 @@ public class RentalController {
             rental.setDescription(description);
 
             if (picture != null && !picture.isEmpty()) {
-                String pictureUrl = storePicture(picture);
+                String pictureUrl = imageUtils.storePicture(picture);
                 rental.setPicture(pictureUrl);
             }
 
@@ -327,48 +288,5 @@ public class RentalController {
         }
     }
 
-    /**
-     * Stores the uploaded file in the server's filesystem and returns the URL to access the file.
-     * This method performs several checks and operations to securely store an uploaded file:
-     * - Validates that the file is not empty to prevent storing unnecessary data.
-     * - Determines the 'uploads' directory path where the file will be stored. If the directory
-     *   doesn't exist, it creates it.
-     * - Generates a unique filename for the uploaded file to avoid name collisions and maintain
-     *   the original file extension. This is achieved by prefixing the original filename with
-     *   the current timestamp.
-     * - Validates that the file will be stored within the predefined 'uploads' directory to
-     *   prevent directory traversal attacks.
-     * - Transfers the file to its final destination in the filesystem.
-     * - Constructs a URL that can be used to access the uploaded file. The URL is based on
-     *   the current context path of the application, ensuring compatibility across different
-     *   deployment environments.
-     *
-     * @param file the multipart file uploaded by the user.
-     * @return A String representing the URL to access the uploaded file.
-     * @throws IOException if the file is empty, if there's an error creating the 'uploads'
-     *         directory, if the file cannot be stored securely, or if there's an error during
-     *         the file transfer.
-     */
-    private String storePicture(MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            throw new IOException("Failed to store empty file.");
-        }
-        String uploadsDirPath = "uploads";
-        Path uploadsDir = Paths.get(uploadsDirPath);
-        if (!Files.exists(uploadsDir)) {
-            Files.createDirectories(uploadsDir);
-        }
-        String filename = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        Path destinationFile = uploadsDir.resolve(Paths.get(filename)).normalize().toAbsolutePath();
-
-        if (!destinationFile.getParent().equals(uploadsDir.toAbsolutePath())) {
-            throw new IOException("Cannot store file outside of the predefined directory.");
-        }
-
-        file.transferTo(destinationFile);
-
-        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
-        return baseUrl + "/uploads/" + filename;
-    }
 
 }

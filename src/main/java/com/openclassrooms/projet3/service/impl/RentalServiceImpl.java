@@ -3,7 +3,11 @@ package com.openclassrooms.projet3.service.impl;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import com.openclassrooms.projet3.excepton.CustomNotFoundException;
+import com.openclassrooms.projet3.model.DBUser;
+import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.RentalService;
+import com.openclassrooms.projet3.utils.ImageUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,12 +16,19 @@ import org.springframework.stereotype.Service;
 import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.repository.RentalRepository;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class RentalServiceImpl implements RentalService {
 
     @Autowired
     public RentalRepository rentalRepository;
+
+    @Autowired
+    private ImageUtils imageUtils;
+
+    @Autowired
+    private DBUserService dbUserService;
 
     public Iterable<Rental> findAllRentals() {
         return rentalRepository.findAll();
@@ -27,8 +38,24 @@ public class RentalServiceImpl implements RentalService {
         return rentalRepository.findById(id);
     }
 
-    public void saveRental(Rental Rental) {
-        rentalRepository.save(Rental);
+    public Rental createRental(String name, int surface, double price, String description, MultipartFile picture, String ownerEmail) throws Exception {
+        Optional<DBUser> ownerOptional = dbUserService.find(ownerEmail);
+        if (ownerOptional.isEmpty()) {
+            throw new CustomNotFoundException("Owner not found");
+        }
+        DBUser owner = ownerOptional.get();
+
+        String pictureUrl = imageUtils.storePicture(picture);
+
+        Rental rental = new Rental();
+        rental.setName(name);
+        rental.setSurface(surface);
+        rental.setPrice(price);
+        rental.setDescription(description);
+        rental.setPicture(pictureUrl);
+        rental.setOwner(owner);
+
+        return rentalRepository.save(rental); // Suppose rentalRepository est votre JPA repository pour Rental
     }
 
     public Rental updateRental(Long id, Rental rentalDetails) {
