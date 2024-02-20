@@ -25,19 +25,23 @@ import java.util.stream.StreamSupport;
 @Service
 public class RentalServiceImpl implements RentalService {
 
-    @Autowired
-    public RentalRepository rentalRepository;
+    private final RentalRepository rentalRepository;
+    private final ImageUtils imageUtils;
+    private final DBUserService dbUserService;
 
     @Autowired
-    private ImageUtils imageUtils;
+    public RentalServiceImpl(RentalRepository rentalRepository, ImageUtils imageUtils, DBUserService dbUserService) {
+        this.rentalRepository = rentalRepository;
+        this.imageUtils = imageUtils;
+        this.dbUserService = dbUserService;
+    }
 
-    @Autowired
-    private DBUserService dbUserService;
-
+    @Override
     public Iterable<Rental> findAllRentals() {
         return rentalRepository.findAll();
     }
 
+    @Override
     public Map<String, Object> getRentalsWithDTOs() {
         Iterable<Rental> rentalsIterable = findAllRentals();
         List<RentalDTO> rentalsList = StreamSupport.stream(rentalsIterable.spliterator(), false)
@@ -49,16 +53,19 @@ public class RentalServiceImpl implements RentalService {
         return response;
     }
 
+    @Override
     public Optional<Rental> findRentalById(Long id) {
         return rentalRepository.findById(id);
     }
 
+    @Override
     public RentalDTO findRentalDTOById(Long id) {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new CustomNotFoundException("Rental not found with id: " + id));
         return convertToDTO(rental);
     }
 
+    @Override
     public Rental createRental(String name, int surface, double price, String description, MultipartFile picture, String ownerEmail) throws Exception {
         Optional<DBUser> ownerOptional = dbUserService.find(ownerEmail);
         if (ownerOptional.isEmpty()) {
@@ -79,6 +86,7 @@ public class RentalServiceImpl implements RentalService {
         return rentalRepository.save(rental);
     }
 
+    @Override
     public Rental updateRental(Long id, String name, int surface, double price, String description, MultipartFile picture, String ownerEmail) throws CustomNotFoundException, IOException {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new CustomNotFoundException("Rental not found for this id: " + id));
@@ -103,18 +111,19 @@ public class RentalServiceImpl implements RentalService {
         return rentalRepository.save(rental);
     }
 
-
+    @Override
     public void deleteRental(Long id) {
         rentalRepository.deleteById(id);
     }
 
+    @Override
     public boolean isUserOwnerOfRental(Long rentalId) {
         Rental rental = findRentalById(rentalId).orElseThrow(() -> new RuntimeException("Rental not found"));
         String authenticatedUsername = getAuthenticatedUsername();
         return rental.getOwner().getName().equals(authenticatedUsername);
     }
 
-    private String getAuthenticatedUsername() {
+    public String getAuthenticatedUsername() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof UserDetails) {
             return ((UserDetails) principal).getUsername();
@@ -123,7 +132,7 @@ public class RentalServiceImpl implements RentalService {
         }
     }
 
-    public RentalDTO convertToDTO(Rental rental) {
+    private RentalDTO convertToDTO(Rental rental) {
         RentalDTO dto = new RentalDTO();
         dto.setId(rental.getId());
         dto.setName(rental.getName());
@@ -135,12 +144,6 @@ public class RentalServiceImpl implements RentalService {
         dto.setUpdated_at(rental.getUpdatedAt().toString());
         dto.setOwner_id(rental.getOwner().getId());
         return dto;
-    }
-
-    public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) {
-            super(message);
-        }
     }
 
 }
