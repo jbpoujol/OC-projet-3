@@ -4,10 +4,7 @@ import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.AuthenticationService;
-import com.openclassrooms.projet3.service.DBUserService;
 import com.openclassrooms.projet3.service.impl.RentalServiceImpl;
-import com.openclassrooms.projet3.utils.ImageUtils;
-import com.openclassrooms.projet3.utils.impl.ImageUtilsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -32,12 +29,10 @@ import java.util.Map;
 public class RentalController {
 
     private final RentalServiceImpl rentalService;
-    private final ImageUtils imageUtils;
     private final AuthenticationService authenticationService;
 
-    public RentalController(RentalServiceImpl rentalService, DBUserService dbUserService, ImageUtilsImpl imageUtils, AuthenticationService authenticationService) {
+    public RentalController(RentalServiceImpl rentalService, AuthenticationService authenticationService) {
         this.rentalService = rentalService;
-        this.imageUtils = imageUtils;
         this.authenticationService = authenticationService;
     }
 
