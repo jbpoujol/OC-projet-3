@@ -165,6 +165,13 @@ public class RentalController {
                                    "message": "Rental created successfully!"
                                }
                                """))),
+                    @ApiResponse(responseCode = "404", description = "Owner not found",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = """
+                               {
+                                   "error": "Owner not found"
+                               }
+                               """))),
                     @ApiResponse(responseCode = "500", description = "Internal server error",
                             content = @Content(mediaType = "application/json",
                                     examples = @ExampleObject(value = """
@@ -172,7 +179,6 @@ public class RentalController {
                                    "error": "Could not create the rental"
                                }
                                """)))
-
             })
     public ResponseEntity<?> createRental(@RequestParam @NotBlank(message = "Name cannot be blank") String name,
                                           @RequestParam @NotNull(message = "Surface cannot be null") @Positive(message = "Surface must be positive") int surface,
