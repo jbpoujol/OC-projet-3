@@ -1,5 +1,6 @@
 package com.openclassrooms.projet3.controller;
 
+import com.openclassrooms.projet3.dtos.ApiStandardResponse;
 import com.openclassrooms.projet3.dtos.RentalDTO;
 import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.Rental;
@@ -207,19 +208,22 @@ public class RentalController {
                                             }
                                             """)))
             })
-    public ResponseEntity<?> createRental(@RequestParam @NotBlank String name,
-                                          @RequestParam @NotNull @Positive int surface,
-                                          @RequestParam @NotNull @Positive double price,
-                                          @RequestParam @NotBlank String description,
-                                          @RequestParam("picture") MultipartFile picture) {
+    public ResponseEntity<ApiStandardResponse> createRental(@RequestParam @NotBlank String name,
+                                                            @RequestParam @NotNull @Positive int surface,
+                                                            @RequestParam @NotNull @Positive double price,
+                                                            @RequestParam @NotBlank String description,
+                                                            @RequestParam("picture") MultipartFile picture) {
         try {
             String email = authenticationService.getAuthenticatedUserEmail();
             Rental rental = rentalService.createRental(name, surface, price, description, picture, email);
-            return new ResponseEntity<>(Map.of("message", "Rental created successfully!", "rentalId", rental.getId()), HttpStatus.CREATED);
+            ApiStandardResponse response = new ApiStandardResponse(true, "Rental created successfully!", Map.of("rentalId", rental.getId()));
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (CustomNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+            ApiStandardResponse errorResponse = new ApiStandardResponse(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not create the rental"));
+            ApiStandardResponse errorResponse = new ApiStandardResponse("Could not create the rental");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -277,21 +281,22 @@ public class RentalController {
                                             }
                                             """)))
             })
-    public ResponseEntity<?> updateRental(@PathVariable @Min(1) Long id,
-                                          @RequestParam @NotBlank String name,
-                                          @RequestParam @NotNull @Positive int surface,
-                                          @RequestParam @NotNull @Positive double price,
-                                          @RequestParam @NotBlank String description,
-                                          @RequestParam(value = "picture", required = false) MultipartFile picture) {
+    public ResponseEntity<ApiStandardResponse> updateRental(@PathVariable @Min(1) Long id,
+                                                            @RequestParam @NotBlank String name,
+                                                            @RequestParam @NotNull @Positive int surface,
+                                                            @RequestParam @NotNull @Positive double price,
+                                                            @RequestParam @NotBlank String description,
+                                                            @RequestParam(value = "picture", required = false) MultipartFile picture) {
         try {
             String ownerEmail = authenticationService.getAuthenticatedUserEmail();
             Rental updatedRental = rentalService.updateRental(id, name, surface, price, description, picture, ownerEmail);
-            return ResponseEntity.ok(Map.of("message", "Rental updated successfully!"));
+            return ResponseEntity.ok(new ApiStandardResponse(true, "Rental updated successfully!"));
         } catch (CustomNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiStandardResponse(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error updating rental: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiStandardResponse("Error updating rental: " + e.getMessage()));
         }
     }
+
 
 }
