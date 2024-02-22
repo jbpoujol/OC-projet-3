@@ -2,6 +2,7 @@ package com.openclassrooms.projet3.controller;
 
 import com.openclassrooms.projet3.dtos.ApiStandardResponse;
 import com.openclassrooms.projet3.dtos.RentalDTO;
+import com.openclassrooms.projet3.dtos.RentalListResponse;
 import com.openclassrooms.projet3.excepton.CustomNotFoundException;
 import com.openclassrooms.projet3.model.Rental;
 import com.openclassrooms.projet3.service.AuthenticationService;
@@ -23,7 +24,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -98,10 +98,9 @@ public class RentalController {
                                             }
                                             """)))
             })
-    public ResponseEntity<Map<String, Object>> getRentals() {
+    public ResponseEntity<RentalListResponse> getRentals() {
         List<RentalDTO> rentals = rentalService.getRentalsWithDTOs();
-        Map<String, Object> response = new HashMap<>();
-        response.put("rentals", rentals);
+        RentalListResponse response = new RentalListResponse(rentals);
         return ResponseEntity.ok(response);
     }
 
